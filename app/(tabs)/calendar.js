@@ -6,6 +6,7 @@ import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useQuery } from "@tanstack/react-query";
 import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
+import { useRouter } from "expo-router";
 import {
     format,
     startOfMonth,
@@ -17,6 +18,7 @@ import {
 } from "date-fns";
 import { ko } from "date-fns/locale";
 import StockTicker from "../../components/StockTicker";
+import { Button } from "../../components/ui/button";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 const StyledView = styled(View);
@@ -51,6 +53,9 @@ const fallbackEvents = [
 export default function CalendarTab() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [activeTab, setActiveTab] = useState("모든 이벤트");
+    const [selectedDate, setSelectedDate] = useState(null);
+    const [showDetail, setShowDetail] = useState(false);
+    const router = useRouter();
 
     const { data: events = [], isLoading } = useQuery({
         queryKey: ["calendar-events"],
@@ -67,20 +72,26 @@ export default function CalendarTab() {
         initialData: [],
     });
 
+    const allEvents = useMemo(() => (events.length ? events : fallbackEvents), [events]);
+
     const filteredEvents = useMemo(() => {
-        const source = events.length ? events : fallbackEvents;
-        return source.filter((event) => {
+        return allEvents.filter((event) => {
             if (activeTab === "마이 이벤트") return event.is_personal;
             if (activeTab === "경제 이벤트") return event.category === "경제";
             return true;
         });
-    }, [events, activeTab]);
+    }, [allEvents, activeTab]);
 
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
     const getEventsForDay = (day) => filteredEvents.filter((event) => isSameDay(new Date(event.date), day));
+
+    const eventsForSelectedDate = useMemo(() => {
+        if (!selectedDate) return [];
+        return allEvents.filter((event) => isSameDay(new Date(event.date), selectedDate));
+    }, [selectedDate, allEvents]);
 
     const eventColors = {
         경제: "bg-orange-100 text-orange-800 border border-orange-200",
@@ -163,44 +174,90 @@ export default function CalendarTab() {
                         const dayEvents = getEventsForDay(day);
                         const isToday = isSameDay(day, new Date());
                         return (
-                            <StyledView
-                                key={day.toISOString()}
-                                style={{ width: `${100 / 7}%`, aspectRatio: 1 }}
-                                className="p-1"
-                            >
-                                <StyledView
-                                    className={`flex-1 rounded-lg p-1 items-center ${
-                                        isToday ? "bg-indigo-600" : "bg-white border border-gray-100"
-                                    }`}
+                            <StyledView key={day.toISOString()} style={{ width: `${100 / 7}%`, aspectRatio: 1 }} className="p-1">
+                                <StyledTouchableOpacity
+                                    className="flex-1"
+                                    onPress={() => router.push(`/calendar-day/${day.toISOString()}`)}
                                 >
-                                    <StyledText
-                                        className={`text-sm font-semibold ${
-                                            isToday ? "text-white" : "text-gray-900"
+                                    <StyledView
+                                        className={`flex-1 rounded-lg p-1 items-center ${
+                                            isToday ? "bg-indigo-600" : "bg-white border border-gray-100"
                                         }`}
                                     >
-                                        {format(day, "d")}
-                                    </StyledText>
-                                    <StyledView className="mt-1 w-full">
-                                        {dayEvents.slice(0, 3).map((event) => (
-                                            <StyledText
-                                                key={event.id}
-                                                className={`text-[8px] text-center rounded px-1 mb-0.5 ${
-                                                    isToday ? "text-white bg-white/20" : eventColors[event.category] || "bg-gray-100 text-gray-600"
-                                                }`}
-                                                numberOfLines={1}
-                                            >
-                                                {event.title}
-                                            </StyledText>
-                                        ))}
-                                        {dayEvents.length > 3 && (
-                                            <StyledText className="text-[8px] text-center text-indigo-600">view more</StyledText>
-                                        )}
+                                        <StyledText
+                                            className={`text-sm font-semibold ${
+                                                isToday ? "text-white" : "text-gray-900"
+                                            }`}
+                                        >
+                                            {format(day, "d")}
+                                        </StyledText>
+                                        <StyledView className="mt-1 w-full">
+                                            {dayEvents.slice(0, 3).map((event) => (
+                                                <StyledText
+                                                    key={event.id}
+                                                    className={`text-[8px] text-center rounded px-1 mb-0.5 ${
+                                                        isToday
+                                                            ? "text-white bg-white/20"
+                                                            : eventColors[event.category] || "bg-gray-100 text-gray-600"
+                                                    }`}
+                                                    numberOfLines={1}
+                                                >
+                                                    {event.title}
+                                                </StyledText>
+                                            ))}
+                                            {dayEvents.length > 3 && (
+                                                <StyledText className="text-[8px] text-center text-indigo-600">view more</StyledText>
+                                            )}
+                                        </StyledView>
                                     </StyledView>
-                                </StyledView>
+                                </StyledTouchableOpacity>
                             </StyledView>
                         );
                     })}
                 </StyledView>
+
+                {showDetail && selectedDate && (
+                    <StyledView className="border border-gray-200 rounded-2xl mt-4 bg-white">
+                        <StyledView className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100 rounded-t-2xl">
+                            <StyledText className="text-base font-bold text-gray-900">
+                                {format(selectedDate, "M월 d일 (EEE)", { locale: ko })}
+                            </StyledText>
+                            <StyledView className="flex-row space-x-2">
+                                <Button variant="ghost" onPress={() => router.push(`/calendar-day/${selectedDate.toISOString()}`)}>
+                                    전체 보기
+                                </Button>
+                                <Button variant="ghost" onPress={() => setShowDetail(false)}>
+                                    닫기
+                                </Button>
+                            </StyledView>
+                        </StyledView>
+                        <StyledScrollView className="max-h-72 px-4 pt-3 pb-4">
+                            {eventsForSelectedDate.length ? (
+                                eventsForSelectedDate.map((event) => (
+                                    <StyledView
+                                        key={event.id}
+                                        className="mb-3 p-3 border border-gray-200 rounded-lg bg-gray-50"
+                                    >
+                                        <StyledText className="text-sm font-semibold text-gray-900 mb-1">
+                                            {event.title}
+                                        </StyledText>
+                                        {event.description && (
+                                            <StyledText className="text-xs text-gray-600 mb-1">
+                                                {event.description}
+                                            </StyledText>
+                                        )}
+                                        <StyledText className="text-[11px] text-gray-500">
+                                            {event.category || "기타"} ·{" "}
+                                            {event.date ? format(new Date(event.date), "HH:mm", { locale: ko }) : ""}
+                                        </StyledText>
+                                    </StyledView>
+                                ))
+                            ) : (
+                                <StyledText className="text-sm text-gray-500">해당 날짜에 이벤트가 없습니다.</StyledText>
+                            )}
+                        </StyledScrollView>
+                    </StyledView>
+                )}
 
                 {!events.length && (
                     <StyledView className="px-4 py-3 rounded-lg bg-indigo-50 border border-indigo-100 mt-6">

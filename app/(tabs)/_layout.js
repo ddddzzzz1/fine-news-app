@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Home, Users, CalendarDays, Trophy } from "lucide-react-native";
+import { Home, CalendarDays, Trophy, Users, User } from "lucide-react-native";
 
 export default function TabsLayout() {
     return (
@@ -18,13 +18,6 @@ export default function TabsLayout() {
                 }}
             />
             <Tabs.Screen
-                name="community"
-                options={{
-                    title: "커뮤니티",
-                    tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
-                }}
-            />
-            <Tabs.Screen
                 name="calendar"
                 options={{
                     title: "캘린더",
@@ -36,6 +29,20 @@ export default function TabsLayout() {
                 options={{
                     title: "공모전",
                     tabBarIcon: ({ color, size }) => <Trophy color={color} size={size} />,
+                }}
+            />
+            <Tabs.Screen
+                name="community"
+                options={{
+                    title: "커뮤니티",
+                    tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
+                }}
+            />
+            <Tabs.Screen
+                name="profile"
+                options={{
+                    title: "마이",
+                    tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
                 }}
             />
         </Tabs>

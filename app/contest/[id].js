@@ -1,0 +1,173 @@
+import React from "react";
+import { View, Text, Image, ScrollView, Linking, Alert } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { styled } from "nativewind";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
+import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
+import { db, auth } from "../../firebaseConfig";
+import { ArrowLeft } from "lucide-react-native";
+import { Button } from "../../components/ui/button";
+import { format } from "date-fns";
+import { ko } from "date-fns/locale";
+
+const StyledSafeAreaView = styled(SafeAreaView);
+const StyledScrollView = styled(ScrollView);
+const StyledView = styled(View);
+const StyledText = styled(Text);
+const StyledImage = styled(Image);
+
+export default function ContestDetail() {
+    const router = useRouter();
+    const { id } = useLocalSearchParams();
+    const userId = auth.currentUser?.uid || "demo-user";
+
+    const { data: contest, isLoading } = useQuery({
+        queryKey: ["contest-detail", id],
+        queryFn: async () => {
+            if (!id) return null;
+            const detailRef = doc(db, "contest_details", id);
+            const detailSnap = await getDoc(detailRef);
+            if (detailSnap.exists()) {
+                return { id: detailSnap.id, ...detailSnap.data() };
+            }
+            const ref = doc(db, "contests", id);
+            const snap = await getDoc(ref);
+            return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+        },
+        enabled: !!id,
+    });
+
+    const handleSaveContest = async () => {
+        if (!contest || !id) return;
+        try {
+            await setDoc(doc(db, "saved_contests", `${userId}_${id}`), {
+                contest_id: id,
+                user_id: userId,
+                title: contest.title,
+                organizer: contest.organizer,
+                start_date: contest.start_date || null,
+                end_date: contest.end_date || null,
+                image_url: contest.image_url || "",
+                apply_url: contest.apply_url || "",
+                saved_at: Timestamp.fromDate(new Date()),
+            });
+
+            if (contest.end_date) {
+                await setDoc(doc(db, "calendar_events", `saved-${userId}-${id}`), {
+                    title: `[관심] ${contest.title}`,
+                    description: contest.description || "관심 공모전 마감일",
+                    date: Timestamp.fromDate(new Date(contest.end_date)),
+                    category: "마이",
+                    is_personal: true,
+                });
+            }
+
+            Alert.alert("관심 공모전 추가", "캘린더와 프로필에서 확인할 수 있습니다.");
+        } catch (error) {
+            console.log("Error saving contest", error);
+            Alert.alert("저장 실패", "다시 시도해주세요.");
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <StyledSafeAreaView edges={["top"]} className="flex-1 bg-white items-center justify-center">
+                <StyledText className="text-sm text-gray-500">공모전 정보를 불러오는 중입니다...</StyledText>
+            </StyledSafeAreaView>
+        );
+    }
+
+    if (!contest) {
+        return (
+            <StyledSafeAreaView edges={["top"]} className="flex-1 bg-white items-center justify-center">
+                <StyledText className="text-sm text-gray-500">공모전 정보를 찾을 수 없습니다.</StyledText>
+                <Button className="mt-4" onPress={() => router.back()}>
+                    돌아가기
+                </Button>
+            </StyledSafeAreaView>
+        );
+    }
+
+    return (
+        <StyledSafeAreaView edges={["top"]} className="flex-1 bg-white">
+            <Stack.Screen options={{ headerShown: false }} />
+            <StyledView className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
+                <Button variant="ghost" size="icon" className="rounded-full" onPress={() => router.back()}>
+                    <ArrowLeft size={22} color="#111827" />
+                </Button>
+                <StyledText className="font-semibold text-sm text-gray-900">공모전 상세</StyledText>
+                <View style={{ width: 40 }} />
+            </StyledView>
+
+            <StyledScrollView className="flex-1 px-4 py-4">
+                <StyledText className="text-xl font-bold text-gray-900 mb-4">{contest.title}</StyledText>
+                {contest.image_url && (
+                    <StyledImage
+                        source={{ uri: contest.image_url }}
+                        className="w-full aspect-[3/4] rounded-xl mb-4"
+                        resizeMode="cover"
+                    />
+                )}
+
+                <StyledView className="mb-4 space-y-1">
+                    <StyledText className="text-sm text-gray-500">주최</StyledText>
+                    <StyledText className="text-base font-medium text-gray-900">{contest.organizer}</StyledText>
+                </StyledView>
+
+                {contest.end_date && (
+                    <StyledView className="mb-4 space-y-1">
+                        <StyledText className="text-sm text-gray-500">모집 기간</StyledText>
+                        <StyledText className="text-base font-medium text-gray-900">
+                            {contest.start_date
+                                ? `${format(new Date(contest.start_date), "yyyy.MM.dd", { locale: ko })} - ${format(
+                                      new Date(contest.end_date),
+                                      "yyyy.MM.dd",
+                                      { locale: ko }
+                                  )}`
+                                : format(new Date(contest.end_date), "yyyy.MM.dd", { locale: ko })}
+                        </StyledText>
+                    </StyledView>
+                )}
+
+                {contest.description && (
+                    <StyledView className="mb-6">
+                        <StyledText className="text-sm text-gray-500 mb-2">소개</StyledText>
+                        <StyledText className="text-base leading-6 text-gray-800">{contest.description}</StyledText>
+                    </StyledView>
+                )}
+
+                {contest.requirements && (
+                    <StyledView className="mb-6">
+                        <StyledText className="text-sm text-gray-500 mb-2">지원 자격</StyledText>
+                        <StyledText className="text-base leading-6 text-gray-800">{contest.requirements}</StyledText>
+                    </StyledView>
+                )}
+
+                {contest.benefits && (
+                    <StyledView className="mb-6">
+                        <StyledText className="text-sm text-gray-500 mb-2">혜택</StyledText>
+                        <StyledText className="text-base leading-6 text-gray-800">{contest.benefits}</StyledText>
+                    </StyledView>
+                )}
+
+                <StyledView className="flex-row space-x-3 mt-4">
+                    <Button
+                        className="flex-1 rounded-full h-12 bg-indigo-50 border border-indigo-200"
+                        onPress={handleSaveContest}
+                    >
+                        <StyledText className="text-indigo-700 font-semibold">관심 공모전 추가</StyledText>
+                    </Button>
+                    {contest.apply_url && (
+                        <Button
+                            className="flex-1 rounded-full h-12 bg-indigo-600"
+                            onPress={() => Linking.openURL(contest.apply_url)}
+                        >
+                            지원 페이지로 이동
+                        </Button>
+                    )}
+                </StyledView>
+            </StyledScrollView>
+        </StyledSafeAreaView>
+    );
+}

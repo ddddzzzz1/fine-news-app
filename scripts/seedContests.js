@@ -1,0 +1,220 @@
+const admin = require("firebase-admin");
+
+admin.initializeApp({
+    credential: admin.credential.cert(require("../serviceAccount.json")),
+});
+
+const db = admin.firestore();
+
+const contestData = [
+    {
+        id: "contest-1",
+        title: "KUDAF 2025 대한민국 대학생 디지털 광고제",
+        organizer: "KUDAF 조직위원회",
+        category: "공모전",
+        start_date: new Date("2025-06-02").toISOString(),
+        end_date: new Date("2025-09-26").toISOString(),
+        image_url: "",
+        views: 7643,
+        description: "신규 디지털 광고 캠페인을 기획하고 출품하는 전국 대학생 대상 공모전입니다.",
+        requirements: "대학생 혹은 휴학생 (팀 참가 가능)",
+        benefits: "대상 500만원, 광고회사 인턴십 연계",
+        apply_url: "https://example.com/contest-1",
+    },
+    {
+        id: "contest-2",
+        title: "피상범죄 예방 콘텐츠 공모전",
+        organizer: "광주경찰청",
+        category: "공모전",
+        start_date: new Date("2025-05-15").toISOString(),
+        end_date: new Date("2025-07-31").toISOString(),
+        image_url: "",
+        views: 1467,
+        description: "디지털 시대 피상범죄 예방을 위한 캠페인 영상과 포스터 아이디어를 공모합니다.",
+        requirements: "전국 대학생",
+        benefits: "경찰청장상 및 상금 200만원",
+        apply_url: "https://example.com/contest-2",
+    },
+    {
+        id: "contest-3",
+        title: "글로벌 스타트업 인턴십",
+        organizer: "Fine Startup",
+        category: "신입/인턴",
+        start_date: new Date("2025-04-01").toISOString(),
+        end_date: new Date("2025-05-10").toISOString(),
+        image_url: "",
+        views: 987,
+        description: "해외 지사를 둔 스타트업에서 함께 성장할 신입/인턴을 선발합니다.",
+        requirements: "졸업예정자 혹은 대학교 3학년 이상",
+        benefits: "월 200만원 급여, 정규직 전환 기회",
+        apply_url: "https://example.com/contest-3",
+    },
+    {
+        id: "contest-4",
+        title: "모둠인턴 여름 프로그램",
+        organizer: "Fine Program",
+        category: "신입/인턴",
+        start_date: new Date("2025-05-01").toISOString(),
+        end_date: new Date("2025-06-15").toISOString(),
+        image_url: "",
+        views: 752,
+        description: "크로스 펑셔널 팀 프로젝트를 수행하는 집중 인턴십 프로그램입니다.",
+        requirements: "대학생 혹은 졸업 1년 이내",
+        benefits: "프로젝트 장학금 및 추천서 제공",
+        apply_url: "https://example.com/contest-4",
+    },
+    {
+        id: "contest-5",
+        title: "대외활동 서포터즈 7기",
+        organizer: "Fine Culture",
+        category: "대외활동",
+        start_date: new Date("2025-03-10").toISOString(),
+        end_date: new Date("2025-04-20").toISOString(),
+        image_url: "",
+        views: 562,
+        description: "문화 캠페인을 홍보하는 서포터즈 활동, 콘텐츠 제작 경험을 쌓을 수 있습니다.",
+        requirements: "SNS 운영 경험자, 콘텐츠 제작 가능자",
+        benefits: "활동비, 수료증, 우수자 해외 탐방",
+        apply_url: "https://example.com/contest-5",
+    },
+    {
+        id: "contest-6",
+        title: "ESG 혁신 아이디어 해커톤",
+        organizer: "Fine ESG Lab",
+        category: "공모전",
+        start_date: new Date("2025-05-01").toISOString(),
+        end_date: new Date("2025-06-30").toISOString(),
+        image_url: "",
+        views: 2113,
+        description: "기업 ESG 과제를 해결할 혁신 아이디어를 발굴하는 해커톤입니다.",
+        requirements: "대학생, 대학원생, 직장인 팀 참가 가능",
+        benefits: "PoC 지원금, 멘토링, 투자 연계",
+        apply_url: "https://example.com/contest-6",
+    },
+    {
+        id: "contest-7",
+        title: "신규 핀테크 서비스 캠퍼스 리포터",
+        organizer: "Fintech Hub",
+        category: "대외활동",
+        start_date: new Date("2025-02-15").toISOString(),
+        end_date: new Date("2025-03-31").toISOString(),
+        image_url: "",
+        views: 689,
+        description: "핀테크 업계 트렌드를 취재하고 콘텐츠로 제작하는 리포터 활동입니다.",
+        requirements: "대학생, 콘텐츠 제작 가능자",
+        benefits: "월 활동비, 전문 교육, 취재 기회",
+        apply_url: "https://example.com/contest-7",
+    },
+    {
+        id: "contest-8",
+        title: "AI 마케팅 아이디어 공모전",
+        organizer: "Fine AI Center",
+        category: "공모전",
+        start_date: new Date("2025-05-10").toISOString(),
+        end_date: new Date("2025-07-10").toISOString(),
+        image_url: "",
+        views: 1740,
+        description: "AI를 활용한 마케팅 전략을 제안하는 공모전입니다.",
+        requirements: "전공 무관, 팀 혹은 개인 참여 가능",
+        benefits: "상금 300만원, 인턴 기회",
+        apply_url: "https://example.com/contest-8",
+    },
+    {
+        id: "contest-9",
+        title: "모빌리티 홍보대사 2기",
+        organizer: "Fine Mobility",
+        category: "대외활동",
+        start_date: new Date("2025-04-05").toISOString(),
+        end_date: new Date("2025-05-25").toISOString(),
+        image_url: "",
+        views: 834,
+        description: "친환경 모빌리티 서비스를 홍보하는 대외활동입니다.",
+        requirements: "운전 가능자 우대, 영상 제작 가능자 우대",
+        benefits: "활동비, 차량 체험권, 채용 가산점",
+        apply_url: "https://example.com/contest-9",
+    },
+    {
+        id: "contest-10",
+        title: "디자인 씽킹 온라인 챌린지",
+        organizer: "Fine Design Lab",
+        category: "공모전",
+        start_date: new Date("2025-06-01").toISOString(),
+        end_date: new Date("2025-07-20").toISOString(),
+        image_url: "",
+        views: 998,
+        description: "디자인 씽킹 방법론을 활용한 문제 해결 아이디어 공모전입니다.",
+        requirements: "전공 무관, 팀 참가 권장",
+        benefits: "상금, 결과물 전시, 멘토링",
+        apply_url: "https://example.com/contest-10",
+    },
+    {
+        id: "contest-11",
+        title: "해외 봉사단 15기",
+        organizer: "Fine Global",
+        category: "대외활동",
+        start_date: new Date("2025-01-15").toISOString(),
+        end_date: new Date("2025-03-01").toISOString(),
+        image_url: "",
+        views: 450,
+        description: "개발도상국 교육/보건 프로젝트에 참여하는 해외 봉사단 프로그램입니다.",
+        requirements: "기본 영어 소통 가능자",
+        benefits: "항공권, 숙박, 봉사활동 인증서",
+        apply_url: "https://example.com/contest-11",
+    },
+    {
+        id: "contest-12",
+        title: "디지털 마케터 신입 채용",
+        organizer: "Fine Agency",
+        category: "신입/인턴",
+        start_date: new Date("2025-02-10").toISOString(),
+        end_date: new Date("2025-03-30").toISOString(),
+        image_url: "",
+        views: 610,
+        description: "디지털 광고 캠페인을 담당할 신입 마케터 모집.",
+        requirements: "관련 전공 우대, 포트폴리오 제출",
+        benefits: "연봉 3,200만원, 교육 프로그램 제공",
+        apply_url: "https://example.com/contest-12",
+    },
+];
+
+async function seed() {
+    const batch = db.batch();
+
+    contestData.forEach((contest) => {
+        const contestRef = db.collection("contests").doc(contest.id);
+        batch.set(contestRef, {
+            title: contest.title,
+            organizer: contest.organizer,
+            category: contest.category,
+            start_date: contest.start_date,
+            end_date: contest.end_date,
+            image_url: contest.image_url,
+            views: contest.views,
+            description: contest.description,
+            apply_url: contest.apply_url,
+        });
+
+        const detailRef = db.collection("contest_details").doc(contest.id);
+        batch.set(detailRef, {
+            title: contest.title,
+            organizer: contest.organizer,
+            category: contest.category,
+            start_date: contest.start_date,
+            end_date: contest.end_date,
+            image_url: contest.image_url,
+            description: contest.description,
+            requirements: contest.requirements,
+            benefits: contest.benefits,
+            apply_url: contest.apply_url,
+        });
+    });
+
+    await batch.commit();
+    console.log("Seeded contests and contest_details.");
+    process.exit(0);
+}
+
+seed().catch((err) => {
+    console.error(err);
+    process.exit(1);
+});

@@ -1,20 +1,83 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'expo-router';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, TouchableOpacity, Image } from 'react-native';
 import { Card } from './ui/card';
-import { MessageCircle, Eye } from 'lucide-react-native';
+import { MessageCircle, Eye, Heart } from 'lucide-react-native';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { styled } from 'nativewind';
+import { db, auth } from '../firebaseConfig';
+import { doc, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
+import { useQueryClient } from '@tanstack/react-query';
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
+const StyledImage = styled(Image);
 
 export default function CommunityPostCard({ post }) {
+    const queryClient = useQueryClient();
+    const [liking, setLiking] = useState(false);
+    const userId = auth.currentUser?.uid || "demo-user";
+
+    const likedUsers = post?.liked_users || [];
+    const likeCount = post?.like_count ?? likedUsers.length ?? 0;
+    const hasLiked = likedUsers.includes(userId);
+
+    const getCreatedDate = () => {
+        if (!post?.created_date) return null;
+        if (post.created_date.seconds) {
+            return new Date(post.created_date.seconds * 1000);
+        }
+        return new Date(post.created_date);
+    };
+
+    const createdDate = getCreatedDate();
+
+    const handleLike = async () => {
+        if (!post?.id || liking) return;
+        setLiking(true);
+        try {
+            const ref = doc(db, "community_posts", post.id);
+            if (hasLiked) {
+                await updateDoc(ref, {
+                    liked_users: arrayRemove(userId),
+                    like_count: increment(-1),
+                });
+            } else {
+                await updateDoc(ref, {
+                    liked_users: arrayUnion(userId),
+                    like_count: increment(1),
+                });
+            }
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["home-community-posts"] }),
+                queryClient.invalidateQueries({ queryKey: ["tab-community-posts"] }),
+                queryClient.invalidateQueries({ queryKey: ["community-post", post.id] }),
+            ]);
+        } catch (error) {
+            console.log("Failed to update like", error);
+        } finally {
+            setLiking(false);
+        }
+    };
+
     return (
         <Link href={`/community/${post.id}`} asChild>
             <Pressable>
                 <Card className="p-4 border-0 border-b border-gray-100 rounded-none">
+                    {post.image_url && (
+                        <StyledImage
+                            source={{ uri: post.image_url }}
+                            className="w-full rounded-xl mb-3 bg-gray-100"
+                            resizeMode="cover"
+                            style={{
+                                aspectRatio:
+                                    post.image_meta?.width && post.image_meta?.height
+                                        ? post.image_meta.width / post.image_meta.height
+                                        : 16 / 9,
+                            }}
+                        />
+                    )}
                     <StyledView className="mb-2">
                         <StyledView className="flex-row items-center space-x-2 mb-1">
                             <StyledText className="text-xs text-gray-500">{post.university}</StyledText>
@@ -27,7 +90,7 @@ export default function CommunityPostCard({ post }) {
                     </StyledView>
                     <StyledView className="flex-row items-center justify-between">
                         <StyledText className="text-xs text-gray-500">
-                            {format(new Date(post.created_date), 'yy.MM.dd', { locale: ko })}
+                            {createdDate ? format(createdDate, 'yy.MM.dd', { locale: ko }) : '날짜 미정'}
                         </StyledText>
                         <StyledView className="flex-row items-center space-x-3">
                             <StyledView className="flex-row items-center space-x-1">
@@ -39,6 +102,20 @@ export default function CommunityPostCard({ post }) {
                                 <StyledText className="text-xs text-gray-500">{post.comment_count || 0}</StyledText>
                             </StyledView>
                         </StyledView>
+                    </StyledView>
+                    <StyledView className="mt-3 flex-row items-center justify-between">
+                        <TouchableOpacity
+                            onPress={(e) => {
+                                e.stopPropagation();
+                                handleLike();
+                            }}
+                            className="flex-row items-center space-x-1"
+                            disabled={liking}
+                        >
+                            <Heart size={16} color={hasLiked ? "#ef4444" : "#6b7280"} fill={hasLiked ? "#ef4444" : "transparent"} />
+                            <StyledText className="text-xs text-gray-700">{likeCount}</StyledText>
+                        </TouchableOpacity>
+                        <StyledText className="text-xs text-indigo-500">{likeCount > 5 ? "인기글" : ""}</StyledText>
                     </StyledView>
                 </Card>
             </Pressable>

@@ -44,7 +44,7 @@ export default function Home() {
         queryKey: ['home-community-posts'],
         queryFn: async () => {
             try {
-                const q = query(collection(db, 'community_posts'), orderBy('created_date', 'desc'), limit(20));
+                const q = query(collection(db, 'community_posts'), orderBy('like_count', 'desc'), limit(20));
                 const querySnapshot = await getDocs(q);
                 return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             } catch (e) {
@@ -59,9 +59,9 @@ export default function Home() {
         news.title?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const filteredPosts = communityPosts.filter(post =>
-        post.title?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredPopular = communityPosts
+        .filter(post => (post.like_count || post.liked_users?.length || 0) > 5)
+        .filter(post => post.title?.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return (
         <StyledSafeAreaView edges={['top']} className="flex-1 bg-white">
@@ -88,7 +88,7 @@ export default function Home() {
 
                 {/* Tabs */}
                 <StyledView className="flex-row border-b border-gray-200">
-                    {['뉴스레터', '커뮤니티'].map((tab) => (
+                    {['뉴스레터', '인기글'].map((tab) => (
                         <StyledTouchableOpacity
                             key={tab}
                             onPress={() => setActiveTab(tab)}
@@ -146,7 +146,7 @@ export default function Home() {
                     <>
                         {/* Community Posts */}
                         <StyledView className="px-4 py-4 pb-20">
-                            <StyledText className="text-base font-bold text-gray-900 mb-4">최근 커뮤니티 게시글</StyledText>
+                            <StyledText className="text-base font-bold text-gray-900 mb-4">인기 커뮤니티 게시글</StyledText>
                             {communityLoading ? (
                                 <StyledView className="space-y-2">
                                     {Array(5).fill(0).map((_, i) => (
@@ -159,7 +159,7 @@ export default function Home() {
                                 </StyledView>
                             ) : (
                                 <StyledView>
-                                    {filteredPosts.map((post) => (
+                                    {filteredPopular.map((post) => (
                                         <CommunityPostCard key={post.id} post={post} />
                                     ))}
                                 </StyledView>
@@ -170,7 +170,7 @@ export default function Home() {
             </StyledScrollView>
 
             {/* Floating Action Button */}
-            {activeTab === '커뮤니티' && (
+            {activeTab === '인기글' && (
                 <StyledTouchableOpacity
                     onPress={() => router.push('/write-post')}
                     className="absolute bottom-6 right-6 w-14 h-14 rounded-full bg-indigo-600 items-center justify-center shadow-lg z-50"
