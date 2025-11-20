@@ -17,11 +17,14 @@ const StyledText = styled(Text);
 
 export default function SavedContestsScreen() {
     const router = useRouter();
-    const userId = auth.currentUser?.uid || "demo-user";
+    const user = auth.currentUser;
+    const userId = user?.uid;
+    const isAuthenticated = Boolean(userId);
 
     const { data: savedContests = [], isLoading } = useQuery({
         queryKey: ["saved-contests", userId],
         queryFn: async () => {
+            if (!userId) return [];
             try {
                 const q = query(collection(db, "saved_contests"), where("user_id", "==", userId));
                 const snapshot = await getDocs(q);
@@ -31,6 +34,8 @@ export default function SavedContestsScreen() {
                 return [];
             }
         },
+        enabled: isAuthenticated,
+        initialData: [],
     });
 
     const formattedContests = savedContests.map((contest) => ({
@@ -50,7 +55,14 @@ export default function SavedContestsScreen() {
             </StyledView>
 
             <StyledScrollView className="flex-1 px-4 py-4">
-                {isLoading ? (
+                {!isAuthenticated ? (
+                    <StyledView className="items-center py-20">
+                        <StyledText className="text-sm text-gray-500 mb-3">로그인 후 저장한 공고를 확인할 수 있습니다.</StyledText>
+                        <Button className="rounded-full px-6" onPress={() => router.push("/login")}>
+                            로그인하기
+                        </Button>
+                    </StyledView>
+                ) : isLoading ? (
                     <StyledText className="text-sm text-gray-500">저장한 공고를 불러오는 중입니다...</StyledText>
                 ) : formattedContests.length ? (
                     formattedContests.map((contest) => <ContestCard key={contest.id} contest={contest} />)

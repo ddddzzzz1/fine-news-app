@@ -71,7 +71,7 @@ export default function UniversityVerificationScreen() {
             return;
         }
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: "images",
             allowsEditing: true,
             quality: 0.8,
         });
@@ -82,6 +82,13 @@ export default function UniversityVerificationScreen() {
 
     const handleSubmit = async () => {
         if (!canSubmit) return;
+        if (!userId) {
+            Alert.alert("로그인 필요", "학생증을 업로드하려면 먼저 로그인해주세요.", [
+                { text: "취소", style: "cancel" },
+                { text: "로그인", onPress: () => router.push("/login") },
+            ]);
+            return;
+        }
         try {
             setSubmitting(true);
             const fileUri = imagePreview.uri;

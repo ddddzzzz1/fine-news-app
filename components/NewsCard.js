@@ -1,16 +1,30 @@
-import React from 'react';
-import { Link } from 'expo-router';
-import { View, Text, Image, Pressable } from 'react-native';
-import { Card } from './ui/card';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
-import { styled } from 'nativewind';
+import React from "react";
+import { Link } from "expo-router";
+import { View, Text, Image, Pressable } from "react-native";
+import { Card } from "./ui/card";
+import { format } from "date-fns";
+import { ko } from "date-fns/locale";
+import { styled } from "nativewind";
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
 const StyledImage = styled(Image);
 
+const toDate = (value) => {
+    if (!value) return null;
+    if (typeof value.toDate === "function") {
+        return value.toDate();
+    }
+    if (value.seconds) {
+        return new Date(value.seconds * 1000 + (value.nanoseconds || 0) / 1e6);
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 export default function NewsCard({ news }) {
+    const displayDate = toDate(news.published_date) || toDate(news.created_date);
+
     return (
         <Link href={`/news/${news.id}`} asChild>
             <Pressable>
@@ -31,10 +45,7 @@ export default function NewsCard({ news }) {
                         <StyledView className="flex-row items-center justify-between">
                             <StyledText className="text-xs text-gray-500">{news.source || '파이낸셜뉴스'}</StyledText>
                             <StyledText className="text-xs text-gray-500">
-                                {news.published_date
-                                    ? format(new Date(news.published_date), 'MM월 dd일', { locale: ko })
-                                    : format(new Date(news.created_date), 'MM월 dd일', { locale: ko })
-                                }
+                                {displayDate ? format(displayDate, "MM월 dd일", { locale: ko }) : "날짜 미정"}
                             </StyledText>
                         </StyledView>
                     </StyledView>

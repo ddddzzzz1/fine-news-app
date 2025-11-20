@@ -20,7 +20,8 @@ const StyledImage = styled(Image);
 export default function ContestDetail() {
     const router = useRouter();
     const { id } = useLocalSearchParams();
-    const userId = auth.currentUser?.uid || "demo-user";
+    const currentUser = auth.currentUser;
+    const userId = currentUser?.uid;
 
     const { data: contest, isLoading } = useQuery({
         queryKey: ["contest-detail", id],
@@ -40,6 +41,13 @@ export default function ContestDetail() {
 
     const handleSaveContest = async () => {
         if (!contest || !id) return;
+        if (!userId) {
+            Alert.alert("로그인 필요", "관심 공모전을 저장하려면 로그인해주세요.", [
+                { text: "취소", style: "cancel" },
+                { text: "로그인", onPress: () => router.push("/login") },
+            ]);
+            return;
+        }
         try {
             await setDoc(doc(db, "saved_contests", `${userId}_${id}`), {
                 contest_id: id,

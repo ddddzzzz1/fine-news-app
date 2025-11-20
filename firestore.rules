@@ -1,0 +1,107 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function postOwner() {
+      return signedIn() && (
+        (resource.data.user_id != null && resource.data.user_id == request.auth.uid) ||
+        (resource.data.user_id == null && resource.data.created_by == request.auth.token.email)
+      );
+    }
+
+    function sameBasePostFields() {
+      return request.resource.data.title == resource.data.title
+        && request.resource.data.content == resource.data.content
+        && request.resource.data.board_type == resource.data.board_type
+        && request.resource.data.university == resource.data.university
+        && request.resource.data.created_by == resource.data.created_by
+        && request.resource.data.created_date == resource.data.created_date
+        && request.resource.data.user_id == resource.data.user_id
+        && request.resource.data.views == resource.data.views
+        && (request.resource.data.image_url == resource.data.image_url)
+        && (request.resource.data.image_meta == resource.data.image_meta);
+    }
+
+    function isLikeMutation() {
+      return sameBasePostFields()
+        && request.resource.data.comments == resource.data.comments
+        && request.resource.data.comment_count == resource.data.comment_count
+        && (
+          request.resource.data.like_count == resource.data.like_count ||
+          request.resource.data.like_count == resource.data.like_count + 1 ||
+          request.resource.data.like_count == resource.data.like_count - 1
+        );
+    }
+
+    function isCommentMutation() {
+      return sameBasePostFields()
+        && request.resource.data.liked_users == resource.data.liked_users
+        && request.resource.data.like_count == resource.data.like_count
+        && (
+          (
+            request.resource.data.comment_count == resource.data.comment_count &&
+            request.resource.data.comments.size() == resource.data.comments.size()
+          ) ||
+          (
+            request.resource.data.comment_count == resource.data.comment_count + 1 &&
+            request.resource.data.comments.size() == resource.data.comments.size() + 1
+          ) ||
+          (
+            request.resource.data.comment_count == resource.data.comment_count - 1 &&
+            request.resource.data.comments.size() == resource.data.comments.size() - 1
+          )
+        );
+    }
+
+    match /news/{docId} {
+      allow read: if true;
+    }
+
+    match /contests/{docId} {
+      allow read: if true;
+    }
+
+    match /contest_details/{docId} {
+      allow read: if true;
+    }
+
+    match /calendar_events/{eventId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.is_personal == true
+        && request.resource.id.matches('^saved-' + request.auth.uid + '-.*$');
+      allow update, delete: if signedIn()
+        && resource.data.is_personal == true
+        && resource.id.matches('^saved-' + request.auth.uid + '-.*$');
+    }
+
+    match /community_posts/{postId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.user_id == request.auth.uid
+        && request.resource.data.created_by == request.auth.token.email;
+      allow update: if postOwner() || (signedIn() && (isLikeMutation() || isCommentMutation()));
+      allow delete: if postOwner();
+    }
+
+    match /saved_contests/{contestId} {
+      allow create: if signedIn() && request.resource.data.user_id == request.auth.uid;
+      allow read, update, delete: if signedIn() && resource.data.user_id == request.auth.uid;
+    }
+
+    match /user_profiles/{uid} {
+      allow read, write: if isSelf(uid);
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

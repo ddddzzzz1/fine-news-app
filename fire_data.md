@@ -20,6 +20,7 @@ This app expects four top-level collections. Seed them in Cloud Firestore (or vi
 | `content` | string | Body text. |
 | `board_type` | string | One of `자유`, `취업`, `모집`, `스터디`. Users pick this when creating a post. |
 | `university` | string | Displayed beside board type. |
+| `user_id` | string | Firebase Auth UID of the author. Required for security rules. |
 | `image_url` | string | Optional download URL for the uploaded image (Storage path: `community_posts/{uid}/...`). |
 | `image_meta` | object | Optional metadata `{ width, height, size, storage_path }` stored with the download URL for aspect ratios + cleanup jobs. |
 | `created_date` | timestamp | Sort order. |

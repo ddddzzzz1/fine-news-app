@@ -21,7 +21,7 @@ export default function CommunityDetail() {
     const router = useRouter();
     const { id } = useLocalSearchParams();
     const user = auth.currentUser;
-    const userId = user?.uid || "demo-user";
+    const userId = user?.uid;
     const queryClient = useQueryClient();
     const [comment, setComment] = useState("");
     const [isCommenting, setIsCommenting] = useState(false);
@@ -46,7 +46,7 @@ export default function CommunityDetail() {
 
     const likedUsers = post?.liked_users || [];
     const likeCount = post?.like_count ?? likedUsers.length ?? 0;
-    const hasLiked = likedUsers.includes(userId);
+    const hasLiked = userId ? likedUsers.includes(userId) : false;
     const postAuthorIdentifier = post?.created_by || post?.user_id || "demo@example.com";
     const currentIdentifier = user?.email || userId || "demo-user";
     const isAuthor = currentIdentifier === (post?.created_by || "demo@example.com");
@@ -61,6 +61,13 @@ export default function CommunityDetail() {
 
     const handleLike = async () => {
         if (!post?.id) return;
+        if (!userId) {
+            Alert.alert("로그인 필요", "좋아요를 누르려면 먼저 로그인해주세요.", [
+                { text: "취소", style: "cancel" },
+                { text: "로그인", onPress: () => router.push("/login") },
+            ]);
+            return;
+        }
         try {
             const ref = doc(db, "community_posts", post.id);
             if (hasLiked) {
@@ -109,6 +116,13 @@ export default function CommunityDetail() {
     };
 
     const handleAddComment = async () => {
+        if (!userId) {
+            Alert.alert("로그인 필요", "댓글을 작성하려면 로그인해주세요.", [
+                { text: "취소", style: "cancel" },
+                { text: "로그인", onPress: () => router.push("/login") },
+            ]);
+            return;
+        }
         if (!comment.trim()) {
             Alert.alert("댓글 작성", "댓글 내용을 입력해주세요.");
             return;
@@ -330,10 +344,15 @@ export default function CommunityDetail() {
                             onChangeText={setComment}
                             placeholder="댓글을 입력해주세요"
                             multiline
+                            editable={!!userId}
                             className="border border-gray-200 rounded-lg px-3 py-2 min-h-[60px] text-base"
                         />
-                        <Button className="mt-2 h-10 rounded-full" onPress={handleAddComment} disabled={isCommenting}>
-                            {isCommenting ? "등록 중..." : "댓글 등록"}
+                        <Button
+                            className="mt-2 h-10 rounded-full"
+                            onPress={handleAddComment}
+                            disabled={!userId || isCommenting}
+                        >
+                            {!userId ? "로그인 필요" : isCommenting ? "등록 중..." : "댓글 등록"}
                         </Button>
                     </StyledView>
                     {comments.length ? (

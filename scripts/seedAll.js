@@ -81,6 +81,7 @@ const communityPosts = [
         content: "서비스 소개와 함께 커뮤니티 이용 수칙을 정리했습니다.",
         board_type: "공지",
         university: "Fine University",
+        user_id: "demo-user",
         created_by: "admin@fine.com",
         created_date: now,
         views: 120,

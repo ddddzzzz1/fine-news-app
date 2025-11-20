@@ -51,7 +51,7 @@ export default function WritePost() {
                 return;
             }
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: "images",
                 allowsEditing: true,
                 quality: 1,
             });
@@ -152,6 +152,7 @@ export default function WritePost() {
                 content: content.trim(),
                 board_type: boardType,
                 university: universityName,
+                user_id: userId || "anonymous",
                 created_by: currentUser?.email || "demo@example.com",
                 created_date: serverTimestamp(),
                 views: 0,

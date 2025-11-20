@@ -18,17 +18,24 @@ const StyledView = styled(View);
 const StyledText = styled(Text);
 const StyledTouchableOpacity = styled(TouchableOpacity);
 
+const FALLBACK_PROFILE = {
+    university_name: "",
+    verification_status: "unverified",
+    student_email_domain: "",
+};
+
 export default function Profile() {
     const router = useRouter();
     const currentUser = auth.currentUser;
-    const email = currentUser?.email || "user@example.com";
-    const displayName = currentUser?.displayName || "사용자";
-    const university = currentUser?.photoURL || ""; // placeholder field
-    const userId = currentUser?.uid || "demo-user";
+    const userId = currentUser?.uid;
+    const email = currentUser?.email;
+    const displayName = currentUser?.displayName || (email ? "사용자" : "로그인이 필요합니다");
+    const university = currentUser?.photoURL || "";
     const { data: userProfile } = useUserProfile(userId);
+    const profile = userProfile || FALLBACK_PROFILE;
 
-    const universityName = userProfile?.university_name || university || "미등록";
-    const verificationStatus = userProfile?.verification_status || "unverified";
+    const universityName = profile.university_name || university || "미등록";
+    const verificationStatus = profile.verification_status || "unverified";
     const isVerifiedStudent = verificationStatus === "verified";
     const isPendingVerification = verificationStatus === "pending";
     const statusText =
@@ -63,6 +70,7 @@ export default function Profile() {
     const { data: savedContests } = useQuery({
         queryKey: ["profile-saved-contests", userId],
         queryFn: async () => {
+            if (!userId) return [];
             try {
                 const q = query(collection(db, "saved_contests"), where("user_id", "==", userId));
                 const snapshot = await getDocs(q);
@@ -120,10 +128,10 @@ export default function Profile() {
                                 <Badge className={`${statusBadgeClass} text-xs`}>{statusText}</Badge>
                             </StyledView>
                             <StyledText className="text-sm font-semibold text-indigo-700 mb-1">{universityName}</StyledText>
-                            <StyledText className="text-sm text-gray-600">{email}</StyledText>
+                            <StyledText className="text-sm text-gray-600">{email || "로그인이 필요합니다"}</StyledText>
                         </StyledView>
                     </StyledView>
-                    {!isVerifiedStudent && (
+                    {currentUser && !isVerifiedStudent && (
                         <StyledView className="mt-2 p-3 rounded-2xl bg-amber-50 border border-amber-100">
                             <StyledText className="text-xs text-amber-800 mb-2">
                                 학생 인증이 완료되어야 게시글 작성, 공모전 저장 등 주요 기능이 활성화됩니다.
@@ -165,7 +173,7 @@ export default function Profile() {
                                 key={item.label}
                                 className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100"
                                 onPress={item.action}
-                                disabled={!item.action}
+                                disabled={!item.action || !currentUser}
                             >
                                 <StyledView className="flex-row items-center space-x-3">
                                     <Icon size={20} color="#4b5563" />
@@ -184,15 +192,24 @@ export default function Profile() {
                     })}
                 </StyledView>
 
-                <StyledView className="bg-white mt-2">
-                    <StyledTouchableOpacity
-                        onPress={handleLogout}
-                        className="flex-row items-center justify-center space-x-2 py-4"
-                    >
-                        <LogOut size={20} color="#ef4444" />
-                        <StyledText className="text-base font-semibold text-red-500">로그아웃</StyledText>
-                    </StyledTouchableOpacity>
-                </StyledView>
+                {currentUser ? (
+                    <StyledView className="bg-white mt-2">
+                        <StyledTouchableOpacity
+                            onPress={handleLogout}
+                            className="flex-row items-center justify-center space-x-2 py-4"
+                        >
+                            <LogOut size={20} color="#ef4444" />
+                            <StyledText className="text-base font-semibold text-red-500">로그아웃</StyledText>
+                        </StyledTouchableOpacity>
+                    </StyledView>
+                ) : (
+                    <StyledView className="bg-white mt-2 px-4 py-6 items-center">
+                        <StyledText className="text-sm text-gray-600 mb-3">로그인하고 개인화된 정보를 확인하세요.</StyledText>
+                        <Button className="rounded-full px-6" onPress={() => router.push("/login")}>
+                            로그인하기
+                        </Button>
+                    </StyledView>
+                )}
             </StyledScrollView>
         </StyledSafeAreaView>
     );

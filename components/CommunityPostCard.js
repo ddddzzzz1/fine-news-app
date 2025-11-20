@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'expo-router';
-import { View, Text, Pressable, TouchableOpacity, Image } from 'react-native';
+import { View, Text, Pressable, TouchableOpacity, Image, Alert } from 'react-native';
 import { Card } from './ui/card';
 import { MessageCircle, Eye, Heart } from 'lucide-react-native';
 import { format } from 'date-fns';
@@ -9,19 +9,22 @@ import { styled } from 'nativewind';
 import { db, auth } from '../firebaseConfig';
 import { doc, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
 import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
 const StyledImage = styled(Image);
 
 export default function CommunityPostCard({ post }) {
+    const router = useRouter();
     const queryClient = useQueryClient();
     const [liking, setLiking] = useState(false);
-    const userId = auth.currentUser?.uid || "demo-user";
+    const userId = auth.currentUser?.uid;
+    const isAuthenticated = Boolean(userId);
 
     const likedUsers = post?.liked_users || [];
     const likeCount = post?.like_count ?? likedUsers.length ?? 0;
-    const hasLiked = likedUsers.includes(userId);
+    const hasLiked = isAuthenticated ? likedUsers.includes(userId) : false;
 
     const getCreatedDate = () => {
         if (!post?.created_date) return null;
@@ -35,6 +38,13 @@ export default function CommunityPostCard({ post }) {
 
     const handleLike = async () => {
         if (!post?.id || liking) return;
+        if (!isAuthenticated) {
+            Alert.alert("로그인 필요", "좋아요를 누르려면 로그인해주세요.", [
+                { text: "취소", style: "cancel" },
+                { text: "로그인", onPress: () => router.push("/login") },
+            ]);
+            return;
+        }
         setLiking(true);
         try {
             const ref = doc(db, "community_posts", post.id);
