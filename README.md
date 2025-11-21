@@ -120,6 +120,24 @@ Lucide Icons
 </ul>
 </td>
 </tr>
+<tr>
+<td width="50%">
+<h3>🔔 푸시 알림</h3>
+<ul>
+<li>Expo Push + Firebase Functions 기반 토픽별 알림</li>
+<li>마이 탭 → “알림 설정” 화면에서 토글/조용한 시간 제어</li>
+<li>저장 공모전 마감 다이제스트 및 큐 기반 뉴스레터 알림</li>
+</ul>
+</td>
+<td width="50%">
+<h3>📈 지표 & 모니터링</h3>
+<ul>
+<li>Expo Firebase Analytics로 옵트인/발송 이벤트 추적</li>
+<li>`push_ticket_receipts` + `cleanupPushTokens`로 만료 토큰 정리</li>
+<li>`adime_guide.md`에 운영 절차 기록</li>
+</ul>
+</td>
+</tr>
 </table>
 
 <br />
@@ -210,6 +228,24 @@ news, calendar_events, community_posts
 contests, saved_contests
 
 user_profiles (인증 완료/대기 상태의 테스트 유저)
+
+<br />
+
+🔔 푸시 알림 설정 (Push Notifications)
+
+1. **Firestore 준비**
+   - 루트에 `user_push_settings`, `notification_requests`, `push_ticket_receipts`, `saved_contests` 컬렉션을 생성합니다.
+   - 세부 스키마는 `fire_data.md`와 `docs/push-notification-sample-docs.md`를 참고해 시드 데이터를 작성하세요.
+2. **보안 규칙/Functions 배포**
+   - `firestore.rules`에 새 컬렉션 접근 제어를 추가한 뒤 `firebase deploy --only firestore:rules`.
+   - `firebase deploy --only functions:processNotificationQueue,functions:sendContestDeadlineDigest,functions:cleanupPushTokens`로 최신 Functions 반영.
+3. **실기기 테스트**
+   - 실제 디바이스에서 Expo Go(또는 Dev Client)로 로그인 → 마이 탭 → “알림 설정”에서 권한 허용 및 토글 상태 확인.
+4. **샘플 알림 발송**
+   - `node scripts/createNotification.js` 실행 또는 Firestore 콘솔에서 `notification_requests/manual_newsletter_drop` 문서를 생성합니다.
+   - `processNotificationQueue`가 5분 이내 큐를 처리하며, 필요 시 `firebase functions:shell`에서 수동 실행 가능합니다.
+5. **운영 가이드**
+   - `adime_guide.md`에 알림 운영/모니터링/퀘치 절차가 정리되어 있으니 관리자 온보딩 시 참고하세요.
 
 <br />
 
