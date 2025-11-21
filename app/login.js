@@ -3,6 +3,7 @@ import { View, Text, TextInput, Alert, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { Button } from "../components/ui/button";
+import { ArrowLeft } from "lucide-react-native";
 import { auth } from "../firebaseConfig";
 import {
     signInWithEmailAndPassword,
@@ -105,47 +106,61 @@ export default function Login() {
     };
 
     return (
-        <StyledSafeAreaView edges={["top"]} className="flex-1 bg-white px-6 py-8">
-            <StyledView className="flex-1 justify-center">
-                <StyledText className="text-3xl font-bold text-gray-900 mb-8">로그인</StyledText>
-
-                <StyledView className="space-y-4 mb-6">
-                    <StyledView>
-                        <StyledText className="text-sm text-gray-700 mb-2">이메일</StyledText>
-                        <StyledTextInput
-                            value={email}
-                            onChangeText={setEmail}
-                            placeholder="이메일을 입력하세요"
-                            autoCapitalize="none"
-                            keyboardType="email-address"
-                            className="border border-gray-200 rounded-lg px-3 py-2 text-base"
-                        />
-                    </StyledView>
-                    <StyledView>
-                        <StyledText className="text-sm text-gray-700 mb-2">비밀번호</StyledText>
-                        <StyledTextInput
-                            value={password}
-                            onChangeText={setPassword}
-                            placeholder="비밀번호를 입력하세요"
-                            secureTextEntry
-                            className="border border-gray-200 rounded-lg px-3 py-2 text-base"
-                        />
-                    </StyledView>
-                </StyledView>
-
-                <Button className="w-full h-12 rounded-full mb-4" disabled={loading} onPress={handleEmailLogin}>
-                    {loading ? "로그인 중..." : "이메일로 로그인"}
+        <StyledSafeAreaView edges={["top"]} className="flex-1 bg-white">
+            <StyledView className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onPress={() => router.back()}
+                    className="rounded-full"
+                >
+                    <ArrowLeft size={24} color="#000" />
                 </Button>
+                <StyledView style={{ width: 40 }} />
+            </StyledView>
 
-                <StyledText className="text-center text-xs text-gray-400 my-4">또는</StyledText>
+            <StyledView className="flex-1 px-6 py-8">
+                <StyledView className="flex-1 justify-center">
+                    <StyledText className="text-3xl font-bold text-gray-900 mb-4">로그인</StyledText>
 
-                {hasGoogleConfig && <GoogleLoginButton config={googleConfig} onSuccess={handleLoginSuccess} />}
+                    <StyledView className="space-y-4 mb-6">
+                        <StyledView>
+                            <StyledText className="text-sm text-gray-700 mb-2">이메일</StyledText>
+                            <StyledTextInput
+                                value={email}
+                                onChangeText={setEmail}
+                                placeholder="이메일을 입력하세요"
+                                autoCapitalize="none"
+                                keyboardType="email-address"
+                                className="border border-gray-200 rounded-lg px-3 py-2 text-base"
+                            />
+                        </StyledView>
+                        <StyledView>
+                            <StyledText className="text-sm text-gray-700 mb-2">비밀번호</StyledText>
+                            <StyledTextInput
+                                value={password}
+                                onChangeText={setPassword}
+                                placeholder="비밀번호를 입력하세요"
+                                secureTextEntry
+                                className="border border-gray-200 rounded-lg px-3 py-2 text-base"
+                            />
+                        </StyledView>
+                    </StyledView>
 
-                <StyledView className="flex-row justify-center mt-6">
-                    <StyledText className="text-xs text-gray-500">아직 계정이 없나요? </StyledText>
-                    <StyledTouchableOpacity onPress={() => router.push("/register")}>
-                        <StyledText className="text-xs font-semibold text-indigo-600">회원가입</StyledText>
-                    </StyledTouchableOpacity>
+                    <Button className="w-full h-12 rounded-full mb-4" disabled={loading} onPress={handleEmailLogin}>
+                        {loading ? "로그인 중..." : "이메일로 로그인"}
+                    </Button>
+
+                    <StyledText className="text-center text-xs text-gray-400 my-4">또는</StyledText>
+
+                    {hasGoogleConfig && <GoogleLoginButton config={googleConfig} onSuccess={handleLoginSuccess} />}
+
+                    <StyledView className="flex-row justify-center mt-6">
+                        <StyledText className="text-xs text-gray-500">아직 계정이 없나요? </StyledText>
+                        <StyledTouchableOpacity onPress={() => router.push("/register")}>
+                            <StyledText className="text-xs font-semibold text-indigo-600">회원가입</StyledText>
+                        </StyledTouchableOpacity>
+                    </StyledView>
                 </StyledView>
             </StyledView>
         </StyledSafeAreaView>

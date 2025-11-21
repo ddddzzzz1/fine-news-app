@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -18,6 +18,18 @@ const StyledText = styled(Text);
 const StyledImage = styled(Image);
 const StyledSafeAreaView = styled(SafeAreaView);
 const StyledScrollView = styled(ScrollView);
+
+const toDate = (value) => {
+    if (!value) return null;
+    if (typeof value.toDate === 'function') {
+        return value.toDate();
+    }
+    if (value.seconds) {
+        return new Date(value.seconds * 1000 + (value.nanoseconds || 0) / 1e6);
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
 
 export default function NewsDetail() {
     const router = useRouter();
@@ -51,6 +63,14 @@ export default function NewsDetail() {
         },
         enabled: !!news
     });
+
+    const displayDate = useMemo(
+        () => {
+            if (!news) return null;
+            return toDate(news?.published_date) || toDate(news?.created_date);
+        },
+        [news?.created_date, news?.published_date]
+    );
 
     if (isLoading) {
         return (
@@ -92,7 +112,9 @@ export default function NewsDetail() {
                     {news.title}
                 </StyledText>
                 <StyledText className="text-sm text-gray-500 mb-6">
-                    {format(new Date(news.published_date || news.created_date), 'yyyy.MM.dd. HH:mm', { locale: ko })}
+                    {displayDate
+                        ? format(displayDate, 'yyyy.MM.dd. HH:mm', { locale: ko })
+                        : '날짜 정보를 불러올 수 없어요'}
                 </StyledText>
 
                 {news.image_url && (
