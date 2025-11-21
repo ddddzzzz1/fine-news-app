@@ -45,11 +45,12 @@ export default function RootLayout() {
                             <Stack.Screen name="calendar-day/[date]" />
                             <Stack.Screen name="saved-contests" />
                             <Stack.Screen name="my-posts" />
-                            <Stack.Screen name="write-post" />
-                            <Stack.Screen name="university-verification" />
-                            <Stack.Screen name="search" />
-                            <Stack.Screen name="help" />
-                        </Stack>
+                        <Stack.Screen name="write-post" />
+                        <Stack.Screen name="university-verification" />
+                        <Stack.Screen name="search" />
+                        <Stack.Screen name="help" />
+                        <Stack.Screen name="notification-settings" />
+                    </Stack>
                     ) : (
                         <Stack screenOptions={{ headerShown: false }}>
                             <Stack.Screen name="login" />

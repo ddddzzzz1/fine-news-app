@@ -146,7 +146,6 @@ export default function CalendarTab() {
         오픈콘텐츠: { badge: "bg-indigo-100 text-indigo-800 border border-indigo-200", dot: "bg-indigo-500" },
     };
     const categoryOptions = Object.keys(eventColors);
-    const categoryOptions = Object.keys(eventColors);
 
     const tabs = ["마이 이벤트", "경제 이벤트", "모든 이벤트"];
 

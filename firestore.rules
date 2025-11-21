@@ -106,6 +106,18 @@ service cloud.firestore {
       allow read, write: if isSelf(uid);
     }
 
+    match /user_push_settings/{uid} {
+      allow read, write: if isSelf(uid);
+    }
+
+    match /notification_requests/{docId} {
+      allow read, write: if false;
+    }
+
+    match /push_ticket_receipts/{docId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

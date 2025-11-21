@@ -18,6 +18,7 @@ const expoClient = new Expo({ accessToken: process.env.EXPO_ACCESS_TOKEN ?? unde
 const PUSH_SETTINGS_COLLECTION = "user_push_settings";
 const NOTIFICATION_REQUESTS_COLLECTION = "notification_requests";
 const SAVED_CONTESTS_COLLECTION = "saved_contests";
+const PUSH_TICKETS_COLLECTION = "push_ticket_receipts";
 const VALID_TOPICS = new Set(["newsletters", "contests", "community", "reminders"]);
 
 const SYMBOLS = {
@@ -149,8 +150,16 @@ function extractExpoTokens(settings) {
         return [];
     }
     return settings.expo_push_tokens
-        .map((entry) => entry?.token)
-        .filter((token) => typeof token === "string" && Expo.isExpoPushToken(token));
+        .map((entry) => {
+            if (entry?.token && Expo.isExpoPushToken(entry.token)) {
+                return {
+                    token: entry.token,
+                    platform: entry.platform ?? "unknown",
+                };
+            }
+            return null;
+        })
+        .filter(Boolean);
 }
 
 function sanitizeDataPayload(data) {
@@ -210,7 +219,7 @@ async function buildMessagesForRequest(request, referenceDate = new Date()) {
     const body = request?.body ?? "";
     const dataPayload = sanitizeDataPayload(request?.data);
 
-    const messages = [];
+    const entries = [];
     recipients.forEach((settings) => {
         if (settings?.enabled === false) {
             return;
@@ -233,40 +242,82 @@ async function buildMessagesForRequest(request, referenceDate = new Date()) {
         }
 
         const tokens = extractExpoTokens(settings);
-        tokens.forEach((token) => {
-            messages.push({
-                to: token,
-                sound: "default",
-                title,
-                body,
-                data: dataPayload,
+        tokens.forEach((tokenEntry) => {
+            entries.push({
+                message: {
+                    to: tokenEntry.token,
+                    sound: "default",
+                    title,
+                    body,
+                    data: dataPayload,
+                },
+                meta: {
+                    userId: settings.id,
+                    topic: request?.target?.type === "topic" ? request.target.key : request?.target?.type ?? "broadcast",
+                    platform: tokenEntry.platform ?? "unknown",
+                },
             });
         });
     });
 
-    return messages;
+    return entries;
 }
 
-async function dispatchExpoNotifications(messages) {
-    if (!Array.isArray(messages) || !messages.length) {
+async function dispatchExpoNotifications(entries) {
+    if (!Array.isArray(entries) || !entries.length) {
         return [];
     }
 
-    const validMessages = messages.filter((message) => Expo.isExpoPushToken(message.to));
-    if (!validMessages.length) {
+    const validEntries = entries.filter(
+        (entry) => Expo.isExpoPushToken(entry?.message?.to) && typeof entry?.message === "object"
+    );
+    if (!validEntries.length) {
         return [];
     }
 
-    const chunks = expoClient.chunkPushNotifications(validMessages);
-    const tickets = [];
+    const messages = validEntries.map((entry) => entry.message);
+    const metadata = validEntries.map((entry) => entry.meta ?? {});
 
+    const chunks = expoClient.chunkPushNotifications(messages);
+    const metadataChunks = [];
+    let pointer = 0;
     for (const chunk of chunks) {
+        metadataChunks.push(metadata.slice(pointer, pointer + chunk.length));
+        pointer += chunk.length;
+    }
+
+    const tickets = [];
+    const receiptRecords = [];
+    const topicTotals = {};
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let index = 0; index < chunks.length; index++) {
+        const chunk = chunks[index];
+        const chunkMeta = metadataChunks[index] ?? [];
         try {
             const ticketChunk = await expoClient.sendPushNotificationsAsync(chunk);
             tickets.push(...ticketChunk);
             ticketChunk.forEach((ticket, idx) => {
+                const meta = chunkMeta[idx] ?? {};
+                const payload = chunk[idx];
                 if (ticket.status === "error") {
-                    console.error("Push ticket error", ticket, "payload", chunk[idx]);
+                    errorCount += 1;
+                    console.error("Push ticket error", ticket, "payload", payload, "meta", meta);
+                } else {
+                    successCount += 1;
+                }
+                if (ticket.id) {
+                    receiptRecords.push({
+                        ticketId: ticket.id,
+                        token: payload.to,
+                        userId: meta.userId ?? null,
+                        topic: meta.topic ?? null,
+                        platform: meta.platform ?? "unknown",
+                    });
+                }
+                if (meta.topic) {
+                    topicTotals[meta.topic] = (topicTotals[meta.topic] || 0) + 1;
                 }
             });
         } catch (error) {
@@ -274,7 +325,29 @@ async function dispatchExpoNotifications(messages) {
         }
     }
 
-    console.log(`Dispatched ${validMessages.length} Expo push messages`);
+    if (receiptRecords.length) {
+        const batch = firestore.batch();
+        receiptRecords.forEach((record) => {
+            const ref = firestore.collection(PUSH_TICKETS_COLLECTION).doc(record.ticketId);
+            batch.set(ref, {
+                token: record.token,
+                user_id: record.userId,
+                topic: record.topic,
+                platform: record.platform,
+                processed: false,
+                created_at: admin.firestore.FieldValue.serverTimestamp(),
+            });
+        });
+        await batch.commit();
+    }
+
+    console.log("Push dispatch summary", {
+        total: messages.length,
+        success: successCount,
+        errors: errorCount,
+        topics: topicTotals,
+    });
+
     return tickets;
 }
 
@@ -290,6 +363,31 @@ function coerceDate(value) {
     }
     const parsed = new Date(value);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+async function removeTokenFromUser(userId, token) {
+    if (!userId || !token) {
+        return;
+    }
+
+    const ref = firestore.collection(PUSH_SETTINGS_COLLECTION).doc(userId);
+    await firestore.runTransaction(async (transaction) => {
+        const snapshot = await transaction.get(ref);
+        if (!snapshot.exists) {
+            return;
+        }
+        const data = snapshot.data() || {};
+        const tokens = Array.isArray(data.expo_push_tokens) ? data.expo_push_tokens : [];
+        const filtered = tokens.filter((entry) => entry?.token && entry.token !== token);
+        if (filtered.length === tokens.length) {
+            return;
+        }
+
+        transaction.update(ref, {
+            expo_push_tokens: filtered,
+            updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        });
+    });
 }
 
 exports.processNotificationQueue = onSchedule(
@@ -316,15 +414,15 @@ exports.processNotificationQueue = onSchedule(
 
         for (const docSnap of readySnapshot.docs) {
             const request = docSnap.data();
-            const messages = await buildMessagesForRequest(request, nowDate);
+            const entries = await buildMessagesForRequest(request, nowDate);
 
-            if (!messages.length) {
+            if (!entries.length) {
                 console.log(`Notification ${docSnap.id} has no deliverable recipients.`);
                 await docSnap.ref.delete();
                 continue;
             }
 
-            await dispatchExpoNotifications(messages);
+            await dispatchExpoNotifications(entries);
             await docSnap.ref.delete();
         }
     }
@@ -374,7 +472,7 @@ exports.sendContestDeadlineDigest = onSchedule(
             });
         });
 
-        const messages = [];
+        const entries = [];
         const userIds = Object.keys(contestsByUser);
 
         for (const userId of userIds) {
@@ -413,23 +511,100 @@ exports.sendContestDeadlineDigest = onSchedule(
                 type: "contestDeadline",
             };
 
-            tokens.forEach((token) => {
-                messages.push({
-                    to: token,
-                    sound: "default",
-                    title: "마감 임박 공모전",
-                    body: reminderBody,
-                    data: dataPayload,
+            tokens.forEach((tokenEntry) => {
+                entries.push({
+                    message: {
+                        to: tokenEntry.token,
+                        sound: "default",
+                        title: "마감 임박 공모전",
+                        body: reminderBody,
+                        data: dataPayload,
+                    },
+                    meta: {
+                        userId,
+                        topic: "reminders",
+                        platform: tokenEntry.platform ?? "unknown",
+                    },
                 });
             });
         }
 
-        if (!messages.length) {
+        if (!entries.length) {
             console.log("Contest reminder: no users with push tokens/preference enabled.");
             return;
         }
 
-        await dispatchExpoNotifications(messages);
-        console.log(`Contest reminder: sent ${messages.length} messages to ${userIds.length} users.`);
+        await dispatchExpoNotifications(entries);
+        console.log(`Contest reminder: sent ${entries.length} messages to ${userIds.length} users.`);
+    }
+);
+
+exports.cleanupPushTokens = onSchedule(
+    {
+        schedule: "0 3 * * *",
+        timeZone: "Asia/Seoul",
+        retryCount: 0,
+    },
+    async () => {
+        const snapshot = await firestore
+            .collection(PUSH_TICKETS_COLLECTION)
+            .where("processed", "==", false)
+            .orderBy("created_at", "asc")
+            .limit(200)
+            .get();
+
+        if (snapshot.empty) {
+            console.log("cleanupPushTokens: no pending receipts.");
+            return;
+        }
+
+        const ticketMetadata = {};
+        snapshot.docs.forEach((docSnap) => {
+            const data = docSnap.data();
+            ticketMetadata[docSnap.id] = {
+                token: data?.token,
+                userId: data?.user_id,
+                platform: data?.platform ?? "unknown",
+            };
+        });
+
+        const ticketIds = Object.keys(ticketMetadata);
+        const receipts = await expoClient.getPushNotificationReceiptsAsync(ticketIds);
+
+        const platformCounts = {};
+        let invalidCount = 0;
+
+        await Promise.all(
+            Object.entries(receipts).map(async ([ticketId, receipt]) => {
+                const meta = ticketMetadata[ticketId];
+                if (!meta) {
+                    return;
+                }
+                if (receipt.status === "error") {
+                    const errorCode = receipt.details?.error;
+                    if (errorCode === "DeviceNotRegistered" || errorCode === "ExpoPushTokenNotFound") {
+                        invalidCount += 1;
+                        platformCounts[meta.platform] = (platformCounts[meta.platform] || 0) + 1;
+                        await removeTokenFromUser(meta.userId, meta.token);
+                    }
+                    console.error("Push receipt error", ticketId, receipt.message, receipt.details);
+                }
+            })
+        );
+
+        const batch = firestore.batch();
+        snapshot.docs.forEach((docSnap) => {
+            batch.update(docSnap.ref, {
+                processed: true,
+                processed_at: admin.firestore.FieldValue.serverTimestamp(),
+            });
+        });
+        await batch.commit();
+
+        console.log("cleanupPushTokens result", {
+            processedTickets: ticketIds.length,
+            invalidTokens: invalidCount,
+            platformCounts,
+        });
     }
 );

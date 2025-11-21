@@ -7,7 +7,7 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
-import { Settings, ChevronRight, FileText, Bell, HelpCircle, LogOut, Bookmark } from "lucide-react-native";
+import { Settings, ChevronRight, FileText, HelpCircle, LogOut, Bookmark, Bell } from "lucide-react-native";
 import { signOut } from "firebase/auth";
 import { useRouter } from "expo-router";
 import { useUserProfile } from "../../lib/useUserProfile";
@@ -91,7 +91,7 @@ export default function Profile() {
     const menuItems = [
         { icon: FileText, label: "내 게시글", count: myPosts?.length || 0, action: () => router.push("/my-posts") },
         { icon: Bookmark, label: "저장한 공고", count: savedContests?.length || 0, action: () => router.push("/saved-contests") },
-        { icon: Bell, label: "알림 설정", count: null },
+        { icon: Bell, label: "알림 설정", count: null, action: () => router.push("/notification-settings") },
         { icon: HelpCircle, label: "도움말", count: null, action: () => router.push("/help") },
         { icon: Settings, label: "설정", count: null },
     ];

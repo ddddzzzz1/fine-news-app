@@ -8,7 +8,7 @@ _Last updated: 2025-02-21_
 - Reuse Firebase Functions so that mobile engineers never have to juggle cronjobs or external queues.
 
 ## Experience Pillars
-1. **Low-friction opt-in** – after login we silently register devices that already granted permission; everyone else sees the CTA behind the 홈 탭 종 bell so they control when the OS prompt appears.
+1. **Low-friction opt-in** – first app launch gently triggers the OS permission prompt once, then logged-in users see the 홈 탭 종 bell CTA for any follow-up consent or troubleshooting.
 2. **Topic-based preferences** – the app stores toggles for `newsletters`, `contests`, `community`, and `reminders` (saved contests + personal calendar) so backend jobs can respect what the user asked for.
 3. **Digest-first** – default is 1 message per topic per day; Cloud Functions aggregate multiple items into a single payload (ex: “3개의 마감 임박 공모전”).
 4. **Quiet Hours** – optional (defaults to 23:00–08:00 Asia/Seoul). Scheduled jobs skip users inside their quiet window.
@@ -55,8 +55,13 @@ The new `processNotificationQueue` function (see below) consumes these docs, res
 2. **Entry point integration**
    - In `app/_layout.js`, once a user is authenticated, run the hook so tokens are refreshed silently.
    - Surface an inline CTA in the 홈 header bell if permissions are denied or disabled.
-3. **Settings UI (follow-up)**
-   - Add a “알림 설정” card under the 마이 탭 that toggles each preference + quiet hours. (Not part of this change, but scaffolded by the hook state.)
+3. **Settings UI**
+   - 마이 탭에서 “알림 설정”을 누르면 전용 화면(`/notification-settings`)으로 이동해 권한 상태, 전체 토글, 채널별 토글, 조용한 시간을 관리한다 (23:00–08:00 기본값).
+
+## Analytics & Token Hygiene
+- Client logs `push_permission_prompt`, `push_opt_in`, `push_opt_in_denied`, etc., via `expo-firebase-analytics` so marketing can track opt-in funnels and CTA performance.
+- `dispatchExpoNotifications` writes ticket metadata (token, user, topic, platform) to `push_ticket_receipts` and logs delivery summaries (success/error counts + per-topic volume).
+- Nightly `cleanupPushTokens` job reads Expo receipts, strips tokens flagged `DeviceNotRegistered`/`ExpoPushTokenNotFound`, and logs per-platform cleanup counts for ops dashboards.
 
 ## Rollout Checklist
 - [ ] Install `expo-notifications` in the Expo app.
@@ -64,3 +69,8 @@ The new `processNotificationQueue` function (see below) consumes these docs, res
 - [ ] Deploy new Firebase Functions alongside the existing index updater.
 - [ ] QA on a physical device: login → allow notifications → ensure `user_push_settings/{uid}` is written → trigger the scheduled function manually (`firebase functions:shell`) to verify push receipt.
 - [ ] Update README + TODO with rollout instructions for the rest of the team.
+
+## Next Enhancements
+- **마이 탭 알림 설정 UI** – build a dedicated section in `app/(tabs)/profile.js` that surfaces permission state, topic toggles, and quiet-hour sliders using `usePushNotificationsContext`.
+- **Expired token cleanup job** – promote the optional `cleanupPushTokens` function into an actual scheduled task that removes Expo tokens flagged as `DeviceNotRegistered` and logs per-platform counts.
+- **Opt-in & delivery analytics** – instrument both the client hook (`push_opt_in`, `push_permission_denied`) and backend dispatcher (tickets sent, errors, skips due to quiet hours) so we can track adoption and reliability end to end.

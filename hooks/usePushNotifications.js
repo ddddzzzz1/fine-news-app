@@ -3,8 +3,10 @@ import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
+import { logAnalyticsEvent } from "../lib/analytics";
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -27,6 +29,7 @@ const DEFAULT_QUIET_HOURS = {
 };
 
 const MAX_STORED_TOKENS = 5;
+const INITIAL_PROMPT_STORAGE_KEY = "fine_news_push_permission_prompted";
 
 function getProjectId() {
     const expoConfig = Constants?.expoConfig;
@@ -54,9 +57,22 @@ export function usePushNotifications(user) {
     const [isSyncing, setIsSyncing] = useState(false);
     const [isUpdatingPreferences, setIsUpdatingPreferences] = useState(false);
     const [lastError, setLastError] = useState(null);
+    const [initialPromptChecked, setInitialPromptChecked] = useState(false);
     const autoRegisterAttempted = useRef(false);
 
     const isSupported = Device.isDevice && Platform.OS !== "web";
+
+    const logPushEvent = useCallback(async (name, params = {}) => {
+        try {
+            await logAnalyticsEvent(name, {
+                ...params,
+                platform: Platform.OS,
+                user_id: userId ?? "anonymous",
+            });
+        } catch (error) {
+            console.warn("Failed to send push analytics event", name, error);
+        }
+    }, [userId]);
 
     const defaultTimezone = useMemo(() => {
         try {
@@ -76,6 +92,41 @@ export function usePushNotifications(user) {
         setPermissionStatus(statusResult.status);
         return statusResult;
     }, [isSupported]);
+
+    const requestSystemPermission = useCallback(
+        async ({ forcePrompt = false, source = "manual" } = {}) => {
+            if (!isSupported) {
+                setPermissionStatus("unsupported");
+                return { status: "unsupported" };
+            }
+
+            try {
+                let statusResult = await Notifications.getPermissionsAsync();
+                const shouldPrompt =
+                    forcePrompt || (statusResult.canAskAgain && statusResult.status !== "granted");
+
+                if (shouldPrompt) {
+                    statusResult = await Notifications.requestPermissionsAsync();
+                }
+
+                setPermissionStatus(statusResult.status);
+                await logPushEvent("push_permission_prompt", {
+                    source,
+                    status: statusResult.status,
+                });
+                return statusResult;
+            } catch (error) {
+                console.warn("Notification permission request failed", error);
+                setLastError(error);
+                await logPushEvent("push_permission_error", {
+                    source,
+                    message: error?.message ?? "unknown",
+                });
+                return { status: "error", error };
+            }
+        },
+        [isSupported, logPushEvent]
+    );
 
     const fetchSettings = useCallback(async () => {
         if (!userId) {
@@ -120,7 +171,7 @@ export function usePushNotifications(user) {
                 platform: Platform.OS,
                 device_name: Device.modelName ?? "Unknown device",
                 app_version: getAppVersion(),
-                last_seen: new Date(),
+                last_seen: serverTimestamp(),
             });
 
             const payload = {
@@ -146,7 +197,7 @@ export function usePushNotifications(user) {
     );
 
     const ensureDeviceRegistration = useCallback(
-        async ({ requestPermissions = false } = {}) => {
+        async ({ requestPermissions = false, reason = "auto" } = {}) => {
             if (!userId || !isSupported) {
                 return { ok: false, reason: "unsupported" };
             }
@@ -156,13 +207,17 @@ export function usePushNotifications(user) {
 
             try {
                 let statusResult = await Notifications.getPermissionsAsync();
-                if (statusResult.status !== "granted" && requestPermissions) {
-                    statusResult = await Notifications.requestPermissionsAsync();
+                if (requestPermissions && statusResult.status !== "granted") {
+                    statusResult = await requestSystemPermission({ forcePrompt: true, source: reason });
+                } else {
+                    setPermissionStatus(statusResult.status);
                 }
 
-                setPermissionStatus(statusResult.status);
-
                 if (statusResult.status !== "granted") {
+                    await logPushEvent("push_opt_in_denied", {
+                        reason,
+                        status: statusResult.status,
+                    });
                     return { ok: false, reason: "denied", status: statusResult.status };
                 }
 
@@ -188,20 +243,29 @@ export function usePushNotifications(user) {
                 await persistTokenMetadata(token);
                 await fetchSettings();
 
+                await logPushEvent(requestPermissions ? "push_opt_in" : "push_token_refresh", {
+                    reason,
+                    success: true,
+                });
+
                 return { ok: true, token };
             } catch (error) {
                 console.warn("Failed to register push notifications", error);
                 setLastError(error);
+                await logPushEvent("push_opt_in_error", {
+                    reason,
+                    message: error?.message ?? "unknown",
+                });
                 return { ok: false, reason: "error", error };
             } finally {
                 setIsSyncing(false);
             }
         },
-        [fetchSettings, isSupported, persistTokenMetadata, userId]
+        [fetchSettings, isSupported, logPushEvent, persistTokenMetadata, requestSystemPermission, userId]
     );
 
     const registerForPushNotifications = useCallback(() => {
-        return ensureDeviceRegistration({ requestPermissions: true });
+        return ensureDeviceRegistration({ requestPermissions: true, reason: "cta" });
     }, [ensureDeviceRegistration]);
 
     const updatePreferences = useCallback(
@@ -235,6 +299,9 @@ export function usePushNotifications(user) {
                 );
 
                 await fetchSettings();
+                await logPushEvent("push_preference_update", {
+                    fields: Object.keys(partialPreferences),
+                });
             } catch (error) {
                 setLastError(error);
                 throw error;
@@ -242,12 +309,104 @@ export function usePushNotifications(user) {
                 setIsUpdatingPreferences(false);
             }
         },
-        [fetchSettings, userId]
+        [fetchSettings, logPushEvent, userId]
+    );
+
+    const setNotificationsEnabled = useCallback(
+        async (enabled) => {
+            if (!userId) return;
+            setIsUpdatingPreferences(true);
+
+            try {
+                await setDoc(
+                    doc(db, "user_push_settings", userId),
+                    {
+                        enabled,
+                        updated_at: serverTimestamp(),
+                    },
+                    { merge: true }
+                );
+                await fetchSettings();
+                await logPushEvent(enabled ? "push_enabled" : "push_disabled");
+            } catch (error) {
+                console.warn("Failed to toggle push enabled state", error);
+                setLastError(error);
+            } finally {
+                setIsUpdatingPreferences(false);
+            }
+        },
+        [fetchSettings, logPushEvent, userId]
+    );
+
+    const updateQuietHours = useCallback(
+        async (quietHours) => {
+            if (!userId) return;
+            setIsUpdatingPreferences(true);
+
+            try {
+                await setDoc(
+                    doc(db, "user_push_settings", userId),
+                    {
+                        quiet_hours: {
+                            ...DEFAULT_QUIET_HOURS,
+                            ...(quietHours ?? {}),
+                        },
+                        updated_at: serverTimestamp(),
+                    },
+                    { merge: true }
+                );
+                await fetchSettings();
+                await logPushEvent("push_quiet_hours_update", quietHours);
+            } catch (error) {
+                console.warn("Failed to update quiet hours", error);
+                setLastError(error);
+            } finally {
+                setIsUpdatingPreferences(false);
+            }
+        },
+        [fetchSettings, logPushEvent, userId]
     );
 
     useEffect(() => {
         refreshPermissionStatus();
     }, [refreshPermissionStatus]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        (async () => {
+            if (!isSupported) {
+                setInitialPromptChecked(true);
+                return;
+            }
+
+            try {
+                const alreadyPrompted = await AsyncStorage.getItem(INITIAL_PROMPT_STORAGE_KEY);
+                if (alreadyPrompted) {
+                    setInitialPromptChecked(true);
+                    return;
+                }
+
+                try {
+                    await requestSystemPermission({ forcePrompt: true, source: "app_launch" });
+                } finally {
+                    await AsyncStorage.setItem(INITIAL_PROMPT_STORAGE_KEY, "1");
+                }
+                if (!cancelled) {
+                    setInitialPromptChecked(true);
+                }
+            } catch (error) {
+                console.warn("Initial push permission prompt failed", error);
+                if (!cancelled) {
+                    setInitialPromptChecked(true);
+                }
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isSupported, requestSystemPermission]);
 
     useEffect(() => {
         if (!userId) {
@@ -261,21 +420,28 @@ export function usePushNotifications(user) {
     useEffect(() => {
         if (permissionStatus === "granted" && userId && !autoRegisterAttempted.current) {
             autoRegisterAttempted.current = true;
-            ensureDeviceRegistration({ requestPermissions: false });
+            ensureDeviceRegistration({ requestPermissions: false, reason: "auto" });
         }
     }, [ensureDeviceRegistration, permissionStatus, userId]);
+
+    const notificationsEnabled = pushSettings?.enabled ?? true;
 
     return {
         isSupported,
         permissionStatus,
         pushSettings,
+        notificationsEnabled,
         isSyncing,
         isUpdatingPreferences,
         lastError,
+        initialPromptChecked,
         refreshPermissionStatus,
         refreshSettings: fetchSettings,
         ensureDeviceRegistration,
         registerForPushNotifications,
         updatePreferences,
+        setNotificationsEnabled,
+        updateQuietHours,
+        requestSystemPermission,
     };
 }

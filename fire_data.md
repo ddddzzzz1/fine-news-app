@@ -142,6 +142,19 @@ Used by Firebase Functions to fan-out push alarms.
 | `send_after` | timestamp | When the push should be sent (UTC). |
 | `created_by` | string | Optional admin UID/email for auditing. |
 
+### 11. `push_ticket_receipts`
+Internal queue for Expo push delivery receipts (processed nightly by `cleanupPushTokens`).
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `token` | string | Expo push token that the ticket belongs to. |
+| `user_id` | string | Reference to `user_push_settings/{uid}` for cleanup. |
+| `platform` | string | `ios`, `android`, or `unknown` (used for analytics). |
+| `topic` | string | Topic or trigger that generated the push (optional). |
+| `processed` | boolean | Marked `true` once receipts are checked. |
+| `created_at` | timestamp | When the ticket was stored. |
+| `processed_at` | timestamp | When the cleanup job finished handling it. |
+
 ## Search / Algolia Extension Setup
 
 - Install the **Search Firestore with Algolia** extension (`algolia/firestore-algolia-search`) once per collection that needs full-text search.
