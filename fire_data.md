@@ -90,7 +90,15 @@ Document ID = Firebase Auth UID. Tracks student verification.
 | `university_name` | string | University or college displayed in the 마이 탭. |
 | `verification_status` | string | One of `verified`, `pending`, `unverified`. Drives feature restrictions. |
 | `student_email_domain` | string (optional) | Official school domain for cross-checks. |
-| `student_id_image_url` | string (optional) | Storage path for submitted ID. |
+| `student_id_image_url` | string (optional) | Download URL for the submitted ID. |
+| `student_id_storage_path` | string (optional) | Exact Cloud Storage path for the uploaded ID image. |
+| `student_id_storage_folder` | string (optional) | Folder slug that includes the student's names for easy browsing in Storage. |
+| `student_id_number` | string (optional) | Student number entered during verification. |
+| `department` | string (optional) | Department or major. |
+| `korean_name` | string (optional) | Legal Korean name from the ID. |
+| `english_name` | string (optional) | English name from the ID. |
+| `note` | string (optional) | Additional description provided by the student. |
+| `submitted_at` | timestamp (optional) | When the verification was submitted. |
 | `updated_at` | timestamp | Last review time. |
 
 > Default new users to `verification_status = "unverified"` and bump them to `pending`/`verified` during manual review.

@@ -27,6 +27,12 @@ const StyledText = styled(Text);
 const StyledTouchableOpacity = styled(TouchableOpacity);
 const StyledTextInput = styled(TextInput);
 
+const sanitizeForPath = (value) =>
+    (value || "")
+        .trim()
+        .replace(/[\\/]/g, "-")
+        .replace(/\s+/g, "-") || "unknown";
+
 const UNIVERSITY_OPTIONS = [
     "충남대학교",
     "KAIST",
@@ -48,6 +54,10 @@ export default function UniversityVerificationScreen() {
 
     const [selectedUniversity, setSelectedUniversity] = useState(profile?.university_name || "");
     const [studentEmail, setStudentEmail] = useState(profile?.student_email_domain || "");
+    const [studentIdNumber, setStudentIdNumber] = useState("");
+    const [department, setDepartment] = useState("");
+    const [koreanName, setKoreanName] = useState("");
+    const [englishName, setEnglishName] = useState("");
     const [imagePreview, setImagePreview] = useState(null);
     const [description, setDescription] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -62,7 +72,10 @@ export default function UniversityVerificationScreen() {
     }, [profile?.university_name, profile?.student_email_domain, selectedUniversity, studentEmail]);
 
     const hasSelection = Boolean(selectedUniversity);
-    const canSubmit = hasSelection && imagePreview && !submitting;
+    const requiredStudentInfo = Boolean(
+        studentIdNumber.trim() && department.trim() && koreanName.trim() && englishName.trim()
+    );
+    const canSubmit = hasSelection && imagePreview && !submitting && requiredStudentInfo;
 
     const handlePickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -95,7 +108,10 @@ export default function UniversityVerificationScreen() {
             const response = await fetch(fileUri);
             const blob = await response.blob();
             const fileExtension = imagePreview.fileName?.split(".").pop() || "jpg";
-            const storagePath = `student-ids/${userId}/${Date.now()}.${fileExtension}`;
+            const sanitizedKorean = sanitizeForPath(koreanName);
+            const sanitizedEnglish = sanitizeForPath(englishName);
+            const storageFolder = `student-ids/${sanitizedKorean}_${sanitizedEnglish}_${userId}`;
+            const storagePath = `${storageFolder}/${Date.now()}.${fileExtension}`;
             const storageRef = ref(storage, storagePath);
             await uploadBytes(storageRef, blob, {
                 contentType: imagePreview.mimeType || "image/jpeg",
@@ -109,6 +125,11 @@ export default function UniversityVerificationScreen() {
                     verification_status: "pending",
                     student_id_image_url: downloadUrl,
                     student_id_storage_path: storagePath,
+                    student_id_storage_folder: storageFolder,
+                    student_id_number: studentIdNumber.trim(),
+                    department: department.trim(),
+                    korean_name: koreanName.trim(),
+                    english_name: englishName.trim(),
                     note: description,
                     submitted_at: serverTimestamp(),
                     display_name: currentUser.displayName || "",
@@ -198,7 +219,44 @@ export default function UniversityVerificationScreen() {
 
                 <StyledView className="mb-6">
                     <StyledText className="text-sm font-semibold text-gray-800 mb-2">
-                        3. 학생증 사진 업로드
+                        3. 학생 정보
+                    </StyledText>
+                    <StyledText className="text-xs text-gray-500 mb-4">
+                        학생증과 동일한 정보를 입력해주세요. 관리자가 사진과 텍스트를 함께 확인합니다.
+                    </StyledText>
+                    <StyledView className="space-y-3">
+                        <StyledTextInput
+                            value={studentIdNumber}
+                            onChangeText={setStudentIdNumber}
+                            placeholder="학번"
+                            autoCapitalize="characters"
+                            className="border border-gray-200 rounded-xl px-3 py-2 text-base"
+                        />
+                        <StyledTextInput
+                            value={department}
+                            onChangeText={setDepartment}
+                            placeholder="학과/전공"
+                            className="border border-gray-200 rounded-xl px-3 py-2 text-base"
+                        />
+                        <StyledTextInput
+                            value={koreanName}
+                            onChangeText={setKoreanName}
+                            placeholder="성명 (한글)"
+                            className="border border-gray-200 rounded-xl px-3 py-2 text-base"
+                        />
+                        <StyledTextInput
+                            value={englishName}
+                            onChangeText={setEnglishName}
+                            placeholder="성명 (영문)"
+                            autoCapitalize="characters"
+                            className="border border-gray-200 rounded-xl px-3 py-2 text-base"
+                        />
+                    </StyledView>
+                </StyledView>
+
+                <StyledView className="mb-6">
+                    <StyledText className="text-sm font-semibold text-gray-800 mb-2">
+                        4. 학생증 사진 업로드
                     </StyledText>
                     <StyledTouchableOpacity
                         className="border border-dashed border-gray-300 rounded-2xl p-4 items-center justify-center bg-gray-50"
@@ -226,7 +284,7 @@ export default function UniversityVerificationScreen() {
 
                 <StyledView className="mb-6">
                     <StyledText className="text-sm font-semibold text-gray-800 mb-2">
-                        4. 추가 메모 (선택)
+                        5. 추가 메모 (선택)
                     </StyledText>
                     <StyledTextInput
                         value={description}
