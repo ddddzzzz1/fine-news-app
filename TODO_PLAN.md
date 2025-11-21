@@ -1,70 +1,39 @@
-# Fine News App – Action Plan
+# 파인 뉴스 앱 – 액션 플랜
 
-Last updated: 2025-02-20
+마지막 업데이트: 2025-02-20
 
-- ## 1. Market Indices Card _(DONE—hourly backend refresh deployed)_
-- Build a dedicated “지수 안내” screen/modal describing each index (Nasdaq, Bitcoin, KOSPI, USD/KRW, 뉴욕 시장, 코스닥). ✅
-- Wire tap handler from the home/newsletter index bar to open the screen. ✅
-- Make the index bar sticky at the bottom of home/newsletter tabs (respect SafeArea insets, hide when keyboard open). ✅
-- Implement Firebase Cloud Function that pulls Yahoo Finance quotes for 모든 지수(나스닥, 다우, 코스피, 코스닥, USD/KRW, BTC-USD) every 60 minutes and stores normalized values in `system/market_indices`. ✅
-- App reads cached values via React Query (fallback to static copy if missing). Add disclaimer “*실시간 지수 연동은 API 확정 후 적용 예정입니다.*” ✅
-- **실시간 API 계획 (Yahoo Finance 단일화)**
-  - 모든 지수/환율/가상자산을 Yahoo Finance quote endpoint 하나로 커버 (symbols: ^IXIC, ^DJI, ^KS11, ^KQ11, KRW=X, BTC-USD).
-  - Firebase Cloud Scheduler → Functions(pub/sub) 파이프라인이 15분 간격으로 Yahoo Finance를 호출하고, 응답 실패 시 마지막 성공 스냅샷을 유지하면서 오류 슬랙 알림만 보냄.
-  - 추가 외부 API 계약이 필요 없으므로 운영비용·관리 복잡도 감소, 다만 Yahoo rate-limit 감시 및 캐싱(React Query + Firestore 문서)으로 안정성 확보.
+## 5. 이미지 처리 고도화
+- 게시글·뉴스·공모전에 선택적 이미지 첨부를 허용하고 Firestore 스키마를 `images[]`(메타데이터 포함) 구조로 확장.
+- 공모전/커뮤니티 게시글에 최대 5장의 다중 업로드, 미리보기 캐러셀, 제출 전 삭제 기능을 제공.
+- Storage 규칙을 `community_posts/{uid}/filename`, `contest_images/{docId}/filename` 경로까지 허용하도록 재작성.
 
-## 2. Authentication Improvements
-- (2025-02-20) DONE: `sendEmailVerification` now fires immediately after sign-up and surfaces UI feedback when the email is already verified.
-- (2025-02-20) DONE: “비밀번호 초기화” button added to the login screen and wired to `sendPasswordResetEmail`.
-- (2025-02-20) DONE: Added structured auth logging plus tester email reminders to confirm verification/reset messages are delivered.
+## 6. 캘린더 개인 일정
+- “내 일정 추가” 버튼과 제목/날짜/카테고리(“마이”)/설명 입력 필드를 제공하고 `calendar_events`에 `is_personal = true`, `user_id`와 함께 저장.
+- 현재 인라인 드로어 + 모달을 통해 사용자별 “마이 이벤트” 필터를 지원. **다음 작업:** 사용자가 직접 등록한 이벤트에 편집/삭제 기능 추가.
 
-## 3. Student Verification Enhancements (DONE)
-- Collect 학번/학과/한글·영문 이름, store them in `user_profiles`.
-- Use folder naming `student-ids/{korean}_{english}_{uid}` for Storage uploads.
-- Update Storage rules to allow folder access for matching UID.
+## 8. 뉴스레터 팝업 노출 실험
+- Firebase Analytics 이벤트(`newsletter_popup_show`, `newsletter_popup_click`)로 팝업 노출/클릭을 추적.
+- Remote Config로 노출 빈도와 대상 세그먼트를 제어.
+- 50% 노출/50% 미노출 그룹으로 A/B 테스트를 수행해 전환율을 비교.
 
-## 4. Rich Content for Contests (DONE)
-- (2025-02-20) Contest detail screen now renders `description`/`requirements`/`benefits` with `react-native-render-html` + a shared sanitizer, so bold/italic/colored/list markup is preserved.
-- (2025-02-20) Added a lightweight “Contest Rich Text Builder” inside `fine-news-admin` to compose HTML snippets (bold/italic/underline/color/list) and copy sanitized JSON for Firestore/seed files.
-- (2025-02-20) Any contest writes now flow through `shared/contestRichText.js` to normalize & sanitize markup before saving via scripts/admin tooling.
+## 9. 운영 도구
+- `fine-news-admin`에서 학생 인증 대기열(이름/학과/Storage 링크)을 확인할 수 있는 뷰 제공.
+- 공모전·뉴스레터 에디터에서 HTML 및 미디어 업로드를 지원해 콘텐츠 작성 파이프라인을 단순화.
 
-## 5. Image Handling
-- Allow posts/news/contests to attach optional images; update Firestore schema (`images[]` with metadata).
-- Add multi-image upload for contests & community posts (max 5). Show preview carousel, allow deletion before submit.
-- Update Storage rules to cover `community_posts/{uid}/filename` and `contest_images/{docId}/filename`.
+## 10. QA & 배포
+- 인증/업로드/HTML 렌더링/캘린더 이벤트 등 핵심 사용자 플로우 회귀 테스트.
+- 변경이 있을 경우 ESLint/테스트 재실행 후 `firestore.rules`, `storage.rules`를 재배포.
+- 신규 기능 위주의 릴리스 노트를 작성해 배포 시 공유.
 
-## 6. Calendar Personal Events
-- Add “내 일정 추가” button on the calendar tab.
-- Form fields: title, date, category (“마이”), optional description.
-- Save to `calendar_events` with `is_personal = true` and `user_id` for filtering; allow edit/delete.
-- (2025-02-22) Calendar tab now has inline drawer + modal for “내 일정 추가,” filters 마이 이벤트 per user, and personal event rules updated. **Next:** add edit/delete affordances for owned events.
+## 11. 푸시 알림 _(진행 중 — 2025-02-21)_
+- `docs/push-notifications.md`에 목표 경험, 데이터 모델, Functions 설계를 문서화.
+- `expo-notifications`로 로그인 사용자의 `user_push_settings/{uid}`에 Expo 토큰·선호도를 저장.
+- Firestore에 `user_push_settings` 컬렉션을 추가하고 마이 탭 → “알림 설정” 화면에서 토글·조용한 시간을 설정하도록 구성.
+- Functions 확장:
+  - `processNotificationQueue`: 뉴스레터/공지 등 토픽성 알림 큐 처리.
+  - `sendContestDeadlineDigest`: 24시간 내 마감되는 저장 공모전을 사용자별 다이제스트로 알림.
+  - `cleanupPushTokens`: Expo 수신 확인을 바탕으로 만료된 토큰을 정리.
+- Expo Firebase Analytics + Cloud Functions 로그로 옵트인/권한 요청/발송 요약 이벤트를 측정.
+- **다음 단계:** 알림 지표 대시보드(옵트인율, 토픽별 전송량, 에러 비율)와 인앱 알림 센터(과거 알림 기록)를 설계.
 
-## 7. Search Functionality _(DONE — 2025-02-21)_
-- Firebase Algolia extension configured for `news`, `community_posts`, `contests`, `newsletters` (indexable fields locked to `title,tags,content`).
-- `app.json` now carries Algolia app/search keys + index prefix; documented rollout steps in README/fire_data.
-- Global search screen added with debounced queries, result tabs, and routing to news/community/contest/newsletter detail pages.
-
-## 8. Newsletter Popup Visibility Test
-- Instrument popup display with Firebase Analytics events (`newsletter_popup_show`, `newsletter_popup_click`).
-- Use Remote Config to control popup frequency / audience segment.
-- Run A/B test for visibility (e.g., 50% see popup vs. control).
-
-## 9. Admin Tools
-- Expose student verification queue (name, dept, Storage link) via `fine-news-admin`.
-- Provide contest/ newsletter editor supporting HTML + media uploads.
-
-## 10. QA & Deployment
-- Regression test: auth flows, uploads, new HTML rendering, calendar events.
-- Re-run ESLint/tests if added, confirm Firebase rules deployed (`firestore.rules`, `storage.rules`).
-- Prepare release notes covering new features once completed.
-
-## 11. Push Notifications _(IN PROGRESS — 2025-02-21)_
-- Documented the target experience, data model, and Firebase Functions in `docs/push-notifications.md`.
-- Install and wire `expo-notifications` so logged-in users register Expo push tokens + preferences in `user_push_settings/{uid}`.
-- Add `user_push_settings` collection to Firestore (schema in doc) and expose preferences toggles later via the 마이 탭.
-- Extend Firebase Functions with helpers + scheduled jobs: 
-  - `processNotificationQueue` for topic blasts (newsletter drops, admin pushes).
-  - `sendContestDeadlineDigest` to remind users about saved contests ending within 24h.
-- Future: quiet-hours UI, notification center inside the 마이 tab, and cleanup job for expired tokens.
-
-> Keep this file updated after each major change: include date, status, and next steps so the whole team stays aligned.
+> 주요 변경 후에는 날짜·상태·다음 단계 정보를 최신화해 팀 전체가 진행 상황을 공유하도록 유지하세요.
