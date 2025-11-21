@@ -1,42 +1,220 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+:root {
+    --border: #e5e7eb;
+    --card-bg: #ffffff;
+    --text: #0f172a;
+    --muted: #6b7280;
+    --shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.app-shell {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 20px 64px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.app-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 32px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.app-header h1 {
+    font-size: 32px;
+    color: var(--text);
+    margin: 4px 0 12px;
 }
 
-.card {
-  padding: 2em;
+.eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 12px;
+    color: var(--muted);
+    margin: 0;
 }
 
-.read-the-docs {
-  color: #888;
+.description {
+    margin: 0;
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 560px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+}
+
+button {
+    border-radius: 12px;
+    border: 1px solid transparent;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+button.primary {
+    background: #4338ca;
+    color: #fff;
+    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.25);
+}
+
+button.primary:hover {
+    transform: translateY(-1px);
+}
+
+button.ghost {
+    border-color: var(--border);
+    background: #fff;
+    color: var(--text);
+}
+
+.section {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+}
+
+.section h2 {
+    margin: 0 0 8px;
+    font-size: 20px;
+}
+
+.section-subtitle {
+    margin: 0 0 24px;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.field input,
+.field select {
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    padding: 12px 14px;
+    font-size: 14px;
+    background: #f9fafb;
+}
+
+.rich-editor {
+    margin-bottom: 32px;
+}
+
+.rich-editor:last-of-type {
+    margin-bottom: 0;
+}
+
+.rich-editor__label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.rich-editor__label span {
+    font-weight: 600;
+}
+
+.rich-editor__label p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.toolbar button {
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text);
+}
+
+.color-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    border: 1px dashed var(--border);
+    padding: 6px 12px;
+    border-radius: 999px;
+}
+
+.color-picker input[type="color"] {
+    border: none;
+    background: transparent;
+    width: 32px;
+    height: 24px;
+    padding: 0;
+}
+
+.rich-editor textarea {
+    width: 100%;
+    min-height: 150px;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    padding: 14px;
+    font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+    resize: vertical;
+    background: #fefefe;
+}
+
+.rich-editor__preview {
+    margin-top: 12px;
+    border-radius: 18px;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    padding: 16px;
+    min-height: 80px;
+}
+
+.json-output {
+    margin: 0;
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 20px;
+    border-radius: 16px;
+    overflow: auto;
+    font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+}
+
+@media (max-width: 720px) {
+    .app-header {
+        flex-direction: column;
+    }
+    .header-actions {
+        width: 100%;
+    }
+    .header-actions button {
+        flex: 1;
+    }
 }

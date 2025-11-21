@@ -11,11 +11,13 @@ import {
     signInWithCredential,
     sendEmailVerification,
     signOut,
+    sendPasswordResetEmail,
 } from "firebase/auth";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
+import { logAuthEvent, isTestAccountEmail } from "../lib/authLogger";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -25,11 +27,14 @@ const StyledText = styled(Text);
 const StyledTextInput = styled(TextInput);
 const StyledTouchableOpacity = styled(TouchableOpacity);
 
+const isValidEmailFormat = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
 export default function Login() {
     const router = useRouter();
     const [email, setEmail] = useState(process.env.EXPO_PUBLIC_TEST_EMAIL || "");
     const [password, setPassword] = useState(process.env.EXPO_PUBLIC_TEST_PASSWORD || "");
     const [loading, setLoading] = useState(false);
+    const [resettingPassword, setResettingPassword] = useState(false);
 
     const baseGoogleConfig = {
         expoClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID || undefined,
@@ -57,43 +62,76 @@ export default function Login() {
     };
 
     const handleEmailLogin = async () => {
-        const trimmedEmail = email.trim();
-        console.log("Email login attempt:", { email: trimmedEmail });
+        const trimmedEmail = email.trim().toLowerCase();
+        logAuthEvent("email_login_attempt", { email: trimmedEmail });
 
         if (!trimmedEmail || !password) {
             Alert.alert("로그인 오류", "이메일과 비밀번호를 입력해주세요.");
             return;
         }
 
-        const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
-        if (!isValidEmail) {
+        if (!isValidEmailFormat(trimmedEmail)) {
             Alert.alert("로그인 오류", "올바른 이메일 형식을 입력해주세요.");
-            console.log("Invalid email format provided:", trimmedEmail);
+            logAuthEvent("email_login_invalid_format", { email: trimmedEmail });
             return;
         }
 
         setLoading(true);
         try {
             const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, password);
-            if (!userCredential.user.emailVerified) {
+            const { user } = userCredential;
+            logAuthEvent("email_login_authenticated", {
+                email: trimmedEmail,
+                uid: user?.uid,
+            });
+
+            if (!user.emailVerified) {
                 try {
-                    await sendEmailVerification(userCredential.user);
+                    await sendEmailVerification(user);
+                    logAuthEvent("email_login_verification_resent", {
+                        email: trimmedEmail,
+                        uid: user.uid,
+                        isTestAccount: isTestAccountEmail(trimmedEmail),
+                    });
                 } catch (verificationError) {
-                    console.log("Resend verification email failed", verificationError);
+                    logAuthEvent("email_login_verification_resend_failed", {
+                        email: trimmedEmail,
+                        uid: user?.uid,
+                        code: verificationError?.code,
+                        message: verificationError?.message,
+                    });
                 }
-                await signOut(auth);
+
+                try {
+                    await signOut(auth);
+                } catch (signOutError) {
+                    logAuthEvent("email_login_signout_after_verification_failed", {
+                        email: trimmedEmail,
+                        uid: user?.uid,
+                        code: signOutError?.code,
+                        message: signOutError?.message,
+                    });
+                }
+
+                const verificationNote = isTestAccountEmail(trimmedEmail)
+                    ? "\n테스트 계정: 받은 편지함을 확인하여 메일 수신 여부를 기록해주세요."
+                    : "";
                 Alert.alert(
                     "이메일 인증 필요",
-                    "가입 시 입력한 이메일로 인증 메일을 보냈습니다. 인증 후 다시 로그인해주세요."
+                    `가입 시 입력한 이메일로 인증 메일을 보냈습니다. 인증 후 다시 로그인해주세요.${verificationNote}`
                 );
                 return;
             }
+            logAuthEvent("email_login_success", {
+                email: trimmedEmail,
+                uid: user.uid,
+            });
             handleLoginSuccess();
         } catch (error) {
-            console.log("Email sign-in failed", {
+            logAuthEvent("email_login_failed", {
+                email: trimmedEmail,
                 code: error?.code,
                 message: error?.message,
-                email: trimmedEmail,
             });
             const errorMessage =
                 error?.code === "auth/invalid-email"
@@ -102,6 +140,51 @@ export default function Login() {
             Alert.alert("로그인 실패", errorMessage);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePasswordReset = async () => {
+        const trimmedEmail = email.trim().toLowerCase();
+
+        if (!trimmedEmail) {
+            Alert.alert("이메일 필요", "비밀번호 초기화를 위해 이메일을 입력해주세요.");
+            return;
+        }
+
+        if (!isValidEmailFormat(trimmedEmail)) {
+            Alert.alert("이메일 오류", "올바른 이메일 형식을 입력해주세요.");
+            return;
+        }
+
+        setResettingPassword(true);
+        try {
+            await sendPasswordResetEmail(auth, trimmedEmail);
+            const isTestAccount = isTestAccountEmail(trimmedEmail);
+            logAuthEvent("password_reset_email_sent", {
+                email: trimmedEmail,
+                isTestAccount,
+            });
+
+            const testAccountNote = isTestAccount
+                ? "\n테스트 계정: 메일 수신 여부를 확인하고 기록해주세요."
+                : "";
+            Alert.alert(
+                "비밀번호 초기화 메일 발송",
+                `입력하신 이메일로 비밀번호 초기화 메일을 보냈습니다.${testAccountNote}`
+            );
+        } catch (error) {
+            logAuthEvent("password_reset_email_failed", {
+                email: trimmedEmail,
+                code: error?.code,
+                message: error?.message,
+            });
+            let errorMessage = "비밀번호 초기화 메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.";
+            if (error.code === "auth/user-not-found") {
+                errorMessage = "가입된 이메일을 찾을 수 없습니다.";
+            }
+            Alert.alert("비밀번호 초기화 실패", errorMessage);
+        } finally {
+            setResettingPassword(false);
         }
     };
 
@@ -147,13 +230,28 @@ export default function Login() {
                         </StyledView>
                     </StyledView>
 
-                    <Button className="w-full h-12 rounded-full mb-4" disabled={loading} onPress={handleEmailLogin}>
+                    <Button
+                        className="w-full h-12 rounded-full mb-2"
+                        disabled={loading || resettingPassword}
+                        onPress={handleEmailLogin}
+                    >
                         {loading ? "로그인 중..." : "이메일로 로그인"}
+                    </Button>
+
+                    <Button
+                        className="w-full h-12 rounded-full mb-4"
+                        variant="outline"
+                        disabled={resettingPassword || loading}
+                        onPress={handlePasswordReset}
+                    >
+                        {resettingPassword ? "메일 발송 중..." : "비밀번호 초기화"}
                     </Button>
 
                     <StyledText className="text-center text-xs text-gray-400 my-4">또는</StyledText>
 
-                    {hasGoogleConfig && <GoogleLoginButton config={googleConfig} onSuccess={handleLoginSuccess} />}
+                    {hasGoogleConfig && (
+                        <GoogleLoginButton config={googleConfig} onSuccess={handleLoginSuccess} />
+                    )}
 
                     <StyledView className="flex-row justify-center mt-6">
                         <StyledText className="text-xs text-gray-500">아직 계정이 없나요? </StyledText>
@@ -171,7 +269,7 @@ function GoogleLoginButton({ config, onSuccess }) {
     const isExpoGo = Constants.appOwnership === "expo";
     const expoRedirectUri = "https://auth.expo.io/@fine_expo/fine-news-app";
     const authRequestConfig = isExpoGo ? { ...config, redirectUri: expoRedirectUri } : config;
-    console.log("Google login redirect:", {
+    logAuthEvent("google_login_redirect_info", {
         redirectUri: authRequestConfig.redirectUri ?? "(native default)",
         appOwnership: Constants.appOwnership,
     });
@@ -185,13 +283,25 @@ function GoogleLoginButton({ config, onSuccess }) {
                 const credential = GoogleAuthProvider.credential(authentication.idToken);
                 signInWithCredential(auth, credential)
                     .then(() => {
+                        logAuthEvent("google_login_success", {
+                            uid: auth.currentUser?.uid,
+                        });
                         onSuccess?.();
                     })
                     .catch((error) => {
-                        console.log("Google sign-in failed", error);
+                        logAuthEvent("google_login_failed", {
+                            code: error?.code,
+                            message: error?.message,
+                        });
                         Alert.alert("로그인 실패", "Google 인증에 실패했습니다.");
                     });
+            } else {
+                logAuthEvent("google_login_missing_token", {});
             }
+        } else if (response?.type === "error") {
+            logAuthEvent("google_login_response_error", {
+                error: response?.error,
+            });
         }
     }, [response]);
 

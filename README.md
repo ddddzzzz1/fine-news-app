@@ -213,6 +213,15 @@ user_profiles (인증 완료/대기 상태의 테스트 유저)
 
 <br />
 
+🔍 검색 (Algolia 설정)
+
+1. Algolia 콘솔에서 App ID와 **Search-Only API Key**를 준비합니다. Write 권한 키는 Firebase 확장에서만 사용하세요.
+2. Firebase CLI에서 `firebase ext:install algolia/firestore-algolia-search` 를 실행하고, `news`, `newsletters`, `community_posts`, `contests` 컬렉션에 대해 각각 한 번씩 설치합니다. Indexable Fields 입력값은 항상 `title,tags,content` 로 맞춰주세요.
+3. `app.json > extra.algolia`에 실제 `appId`, `searchApiKey`, `indexPrefix` 값을 입력합니다. (searchApiKey는 Search-Only 키를 사용)
+4. 앱에서 검색창을 열면 Algolia 인덱스 4종을 동시에 조회하고, 탭으로 결과를 확인할 수 있습니다.
+
+<br />
+
 🔐 환경 변수 및 보안 (Security)
 
 파일별 용도와 공유 정책을 준수해 주세요.

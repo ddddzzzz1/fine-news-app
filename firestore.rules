@@ -76,10 +76,16 @@ service cloud.firestore {
       allow read: if true;
       allow create: if signedIn()
         && request.resource.data.is_personal == true
-        && request.resource.id.matches('^saved-' + request.auth.uid + '-.*$');
+        && (
+          request.resource.data.user_id == request.auth.uid
+          || request.resource.id.matches('^saved-' + request.auth.uid + '-.*$')
+        );
       allow update, delete: if signedIn()
         && resource.data.is_personal == true
-        && resource.id.matches('^saved-' + request.auth.uid + '-.*$');
+        && (
+          resource.data.user_id == request.auth.uid
+          || resource.id.matches('^saved-' + request.auth.uid + '-.*$')
+        );
     }
 
     match /community_posts/{postId} {

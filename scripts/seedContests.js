@@ -6,6 +6,8 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
+const { sanitizeContestFields } = require("../shared/contestRichText");
+
 const contestData = [
     {
         id: "contest-1",
@@ -51,7 +53,7 @@ const contestData = [
     },
     {
         id: "contest-4",
-        title: "모둠인턴 여름 프로그램",
+        title: "인턴 여름 프로그램",
         organizer: "Fine Program",
         category: "신입/인턴",
         start_date: new Date("2025-05-01").toISOString(),
@@ -181,31 +183,32 @@ async function seed() {
     const batch = db.batch();
 
     contestData.forEach((contest) => {
+        const sanitizedContest = sanitizeContestFields(contest);
         const contestRef = db.collection("contests").doc(contest.id);
         batch.set(contestRef, {
-            title: contest.title,
-            organizer: contest.organizer,
-            category: contest.category,
-            start_date: contest.start_date,
-            end_date: contest.end_date,
-            image_url: contest.image_url,
-            views: contest.views,
-            description: contest.description,
-            apply_url: contest.apply_url,
+            title: sanitizedContest.title,
+            organizer: sanitizedContest.organizer,
+            category: sanitizedContest.category,
+            start_date: sanitizedContest.start_date,
+            end_date: sanitizedContest.end_date,
+            image_url: sanitizedContest.image_url,
+            views: sanitizedContest.views,
+            description: sanitizedContest.description,
+            apply_url: sanitizedContest.apply_url,
         });
 
         const detailRef = db.collection("contest_details").doc(contest.id);
         batch.set(detailRef, {
-            title: contest.title,
-            organizer: contest.organizer,
-            category: contest.category,
-            start_date: contest.start_date,
-            end_date: contest.end_date,
-            image_url: contest.image_url,
-            description: contest.description,
-            requirements: contest.requirements,
-            benefits: contest.benefits,
-            apply_url: contest.apply_url,
+            title: sanitizedContest.title,
+            organizer: sanitizedContest.organizer,
+            category: sanitizedContest.category,
+            start_date: sanitizedContest.start_date,
+            end_date: sanitizedContest.end_date,
+            image_url: sanitizedContest.image_url,
+            description: sanitizedContest.description,
+            requirements: sanitizedContest.requirements,
+            benefits: sanitizedContest.benefits,
+            apply_url: sanitizedContest.apply_url,
         });
     });
 

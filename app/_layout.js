@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import { View, ActivityIndicator } from "react-native";
+import { PushNotificationsProvider } from "../context/PushNotificationsContext";
 
 const queryClient = new QueryClient();
 
@@ -33,24 +34,29 @@ export default function RootLayout() {
     return (
         <QueryClientProvider client={queryClient}>
             <SafeAreaProvider>
-                {user ? (
-                    <Stack screenOptions={{ headerShown: false }}>
-                        <Stack.Screen name="(tabs)" />
-                        <Stack.Screen name="news/[id]" />
-                        <Stack.Screen name="community/[id]" />
-                        <Stack.Screen name="contest/[id]" />
-                        <Stack.Screen name="calendar-day/[date]" />
-                        <Stack.Screen name="saved-contests" />
-                        <Stack.Screen name="my-posts" />
-                        <Stack.Screen name="write-post" />
-                        <Stack.Screen name="university-verification" />
-                    </Stack>
-                ) : (
-                    <Stack screenOptions={{ headerShown: false }}>
-                        <Stack.Screen name="login" />
-                        <Stack.Screen name="register" />
-                    </Stack>
-                )}
+                <PushNotificationsProvider user={user}>
+                    {user ? (
+                        <Stack screenOptions={{ headerShown: false }}>
+                            <Stack.Screen name="(tabs)" />
+                            <Stack.Screen name="news/[id]" />
+                            <Stack.Screen name="newsletters/[id]" />
+                            <Stack.Screen name="community/[id]" />
+                            <Stack.Screen name="contest/[id]" />
+                            <Stack.Screen name="calendar-day/[date]" />
+                            <Stack.Screen name="saved-contests" />
+                            <Stack.Screen name="my-posts" />
+                            <Stack.Screen name="write-post" />
+                            <Stack.Screen name="university-verification" />
+                            <Stack.Screen name="search" />
+                            <Stack.Screen name="help" />
+                        </Stack>
+                    ) : (
+                        <Stack screenOptions={{ headerShown: false }}>
+                            <Stack.Screen name="login" />
+                            <Stack.Screen name="register" />
+                        </Stack>
+                    )}
+                </PushNotificationsProvider>
             </SafeAreaProvider>
         </QueryClientProvider>
     );

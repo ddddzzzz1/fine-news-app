@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Image, ScrollView, Linking, Alert } from "react-native";
+import { View, Text, Image, ScrollView, Linking, Alert, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -10,6 +10,7 @@ import { ArrowLeft } from "lucide-react-native";
 import { Button } from "../../components/ui/button";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import RichContentSection from "../../components/RichContentSection";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 const StyledScrollView = styled(ScrollView);
@@ -22,6 +23,8 @@ export default function ContestDetail() {
     const { id } = useLocalSearchParams();
     const currentUser = auth.currentUser;
     const userId = currentUser?.uid;
+    const { width } = useWindowDimensions();
+    const contentWidth = Math.max(width - 48, 0);
 
     const { data: contest, isLoading } = useQuery({
         queryKey: ["contest-detail", id],
@@ -68,6 +71,8 @@ export default function ContestDetail() {
                     date: Timestamp.fromDate(new Date(contest.end_date)),
                     category: "마이",
                     is_personal: true,
+                    user_id: userId,
+                    created_by: currentUser?.email || "",
                 });
             }
 
@@ -138,26 +143,9 @@ export default function ContestDetail() {
                     </StyledView>
                 )}
 
-                {contest.description && (
-                    <StyledView className="mb-6">
-                        <StyledText className="text-sm text-gray-500 mb-2">소개</StyledText>
-                        <StyledText className="text-base leading-6 text-gray-800">{contest.description}</StyledText>
-                    </StyledView>
-                )}
-
-                {contest.requirements && (
-                    <StyledView className="mb-6">
-                        <StyledText className="text-sm text-gray-500 mb-2">지원 자격</StyledText>
-                        <StyledText className="text-base leading-6 text-gray-800">{contest.requirements}</StyledText>
-                    </StyledView>
-                )}
-
-                {contest.benefits && (
-                    <StyledView className="mb-6">
-                        <StyledText className="text-sm text-gray-500 mb-2">혜택</StyledText>
-                        <StyledText className="text-base leading-6 text-gray-800">{contest.benefits}</StyledText>
-                    </StyledView>
-                )}
+                <RichContentSection label="소개" value={contest.description} contentWidth={contentWidth} />
+                <RichContentSection label="지원 자격" value={contest.requirements} contentWidth={contentWidth} />
+                <RichContentSection label="혜택" value={contest.benefits} contentWidth={contentWidth} />
 
                 <StyledView className="flex-row space-x-3 mt-4">
                     <Button

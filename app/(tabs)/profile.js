@@ -29,11 +29,15 @@ export default function Profile() {
     const currentUser = auth.currentUser;
     const userId = currentUser?.uid;
     const email = currentUser?.email;
-    const displayName = currentUser?.displayName || (email ? "사용자" : "로그인이 필요합니다");
-    const university = currentUser?.photoURL || "";
     const { data: userProfile } = useUserProfile(userId);
     const profile = userProfile || FALLBACK_PROFILE;
 
+    const displayName =
+        profile.korean_name ||
+        profile.english_name ||
+        currentUser?.displayName ||
+        (email ? email.split("@")[0] : "로그인이 필요합니다");
+    const university = currentUser?.photoURL || "";
     const universityName = profile.university_name || university || "미등록";
     const verificationStatus = profile.verification_status || "unverified";
     const isVerifiedStudent = verificationStatus === "verified";
@@ -88,7 +92,7 @@ export default function Profile() {
         { icon: FileText, label: "내 게시글", count: myPosts?.length || 0, action: () => router.push("/my-posts") },
         { icon: Bookmark, label: "저장한 공고", count: savedContests?.length || 0, action: () => router.push("/saved-contests") },
         { icon: Bell, label: "알림 설정", count: null },
-        { icon: HelpCircle, label: "도움말", count: null },
+        { icon: HelpCircle, label: "도움말", count: null, action: () => router.push("/help") },
         { icon: Settings, label: "설정", count: null },
     ];
 

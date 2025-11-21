@@ -1,18 +1,21 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { collection, getDocs, query, orderBy, limit, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
-import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
-import { Search, Bell, Edit3, X } from 'lucide-react-native';
+import { Search, Bell, Edit3 } from 'lucide-react-native';
 import NewsCard from '../../components/NewsCard';
 import StockTicker from '../../components/StockTicker';
 import CommunityPostCard from '../../components/CommunityPostCard';
 import { Skeleton } from '../../components/ui/skeleton';
 import { styled } from 'nativewind';
+import MarketIndexGuideModal from '../../components/MarketIndexGuideModal';
+import { useMarketIndices } from '../../hooks/useMarketIndices';
+import { useKeyboardVisible } from '../../hooks/useKeyboardVisible';
+import { usePushNotificationsContext } from '../../context/PushNotificationsContext';
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
@@ -20,59 +23,53 @@ const StyledTouchableOpacity = styled(TouchableOpacity);
 const StyledSafeAreaView = styled(SafeAreaView);
 const StyledScrollView = styled(ScrollView);
 
-const INDEX_ITEMS = [
-    {
-        id: 'nasdaq',
-        label: '나스닥',
-        value: '22,870.35',
-        change: '-2.2%',
-        description: '미국 기술주 중심 지수. 금리/성장주 모멘텀에 크게 반응합니다.',
-        note: '데이터 출처: 미국증시 종가 기준. 실시간 값은 향후 API 연동 예정입니다.',
-    },
-    {
-        id: 'dow',
-        label: '뉴욕 시장',
-        value: '38,045.23',
-        change: '+0.6%',
-        description: '다우존스 산업평균 지수. 전통 제조·금융 업종 비중이 높습니다.',
-    },
-    {
-        id: 'kospi',
-        label: '코스피',
-        value: '2,741.18',
-        change: '-0.3%',
-        description: '국내 대형주 지수. 외국인 수급과 환율 영향이 큽니다.',
-    },
-    {
-        id: 'kosdaq',
-        label: '코스닥',
-        value: '875.42',
-        change: '+1.1%',
-        description: '국내 벤처·중소형 성장주 지수. 변동성이 높습니다.',
-    },
-    {
-        id: 'usdkrw',
-        label: 'USD/KRW',
-        value: '1,361.20',
-        change: '-0.5%',
-        description: '원·달러 환율. 수출주 실적과 외국인 매수에 직접 영향.',
-    },
-    {
-        id: 'bitcoin',
-        label: '비트코인',
-        value: '$62,430',
-        change: '+3.4%',
-        description: '대표 가상자산. 글로벌 위험자산 선호지표로 활용됩니다.',
-    },
-];
-
 export default function Home() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('뉴스레터');
     const [showIndexModal, setShowIndexModal] = useState(false);
-    const [selectedIndexInfo, setSelectedIndexInfo] = useState(INDEX_ITEMS[0]);
+    const { indices: displayIndices } = useMarketIndices();
+    const keyboardVisible = useKeyboardVisible();
+    const [selectedIndexId, setSelectedIndexId] = useState(displayIndices[0]?.id ?? 'nasdaq');
+    const {
+        permissionStatus,
+        registerForPushNotifications,
+        isSyncing: isRegisteringPush,
+        isSupported: pushSupported,
+    } = usePushNotificationsContext();
+    const shouldShowPushIndicator = pushSupported && permissionStatus !== "granted";
+
+    const handleNotificationPress = useCallback(() => {
+        if (!pushSupported || permissionStatus === "unsupported") {
+            Alert.alert("알림을 지원하지 않는 기기", "이 기기에서는 푸시 알림을 사용할 수 없습니다.");
+            return;
+        }
+
+        if (permissionStatus === "granted") {
+            Alert.alert("알림이 켜져 있어요", "마이 탭의 '알림 설정'에서 언제든지 조정할 수 있습니다.");
+            return;
+        }
+
+        Alert.alert(
+            "푸시 알림 받기",
+            "마감 임박 공모전과 새 뉴스레터 알림을 받아볼까요?",
+            [
+                { text: "나중에", style: "cancel" },
+                {
+                    text: isRegisteringPush ? "처리 중..." : "알림 받기",
+                    onPress: () => {
+                        if (isRegisteringPush) return;
+                        registerForPushNotifications().then((result) => {
+                            if (!result?.ok && result?.reason === "denied") {
+                                Alert.alert("알림 허용이 필요해요", "디바이스 설정에서 Fine News의 알림을 허용해주세요.");
+                            }
+                        });
+                    },
+                },
+            ],
+            { cancelable: true }
+        );
+    }, [isRegisteringPush, permissionStatus, pushSupported, registerForPushNotifications]);
 
     const { data: newsList, isLoading: newsLoading } = useQuery({
         queryKey: ['news'],
@@ -104,63 +101,26 @@ export default function Home() {
         initialData: []
     });
 
-    const { data: marketDoc } = useQuery({
-        queryKey: ['market-indices'],
-        queryFn: async () => {
-            try {
-                const snap = await getDoc(doc(db, 'system', 'market_indices'));
-                return snap.exists() ? snap.data() : null;
-            } catch (error) {
-                console.log('Error fetching market indices', error);
-                return null;
-            }
-        },
-        staleTime: 1000 * 60 * 10,
-    });
-
-    const filteredNews = newsList.filter(news =>
-        news.title?.toLowerCase().includes(searchQuery.toLowerCase())
+    const popularPosts = communityPosts.filter(
+        post => (post.like_count || post.liked_users?.length || 0) > 5
     );
 
-    const filteredPopular = communityPosts
-        .filter(post => (post.like_count || post.liked_users?.length || 0) > 5)
-        .filter(post => post.title?.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    const formatValue = (value, id) => {
-        if (value === undefined || value === null) return undefined;
-        const isCrypto = id === 'bitcoin';
-        const decimals = id === 'usdkrw' ? 2 : isCrypto ? 0 : 2;
-        return new Intl.NumberFormat('en-US', {
-            minimumFractionDigits: decimals,
-            maximumFractionDigits: decimals,
-        }).format(value);
-    };
-
-    const formatChange = (percent) => {
-        if (percent === undefined || percent === null) return undefined;
-        return `${percent >= 0 ? '+' : ''}${percent.toFixed(2)}%`;
-    };
-
-    const displayIndices = useMemo(() => {
-        const items = marketDoc?.items;
-        if (!items) return INDEX_ITEMS;
-        return INDEX_ITEMS.map((item) => {
-            const live = items[item.id];
-            if (!live) return item;
-            return {
-                ...item,
-                value: formatValue(live.value, item.id) ?? item.value,
-                change: formatChange(live.changePercent ?? live.change_percent) ?? item.change,
-            };
-        });
-    }, [marketDoc]);
+    useEffect(() => {
+        if (!selectedIndexId && displayIndices.length) {
+            setSelectedIndexId(displayIndices[0].id);
+        }
+    }, [displayIndices, selectedIndexId]);
 
     const handleOpenIndexModal = (item) => {
-        setSelectedIndexInfo(item);
+        setSelectedIndexId(item?.id ?? displayIndices[0]?.id ?? 'nasdaq');
         setShowIndexModal(true);
     };
 
-    const indexBarBottom = useMemo(() => Math.max(insets.bottom, 16), [insets.bottom]);
+    const bottomInset = useMemo(() => Math.max(insets.bottom, 16), [insets.bottom]);
+    const showIndexBar = displayIndices.length > 0 && !keyboardVisible;
+    const indexBarHeight = 76;
+    const scrollPaddingBottom = showIndexBar ? bottomInset + indexBarHeight + 64 : 48;
+    const fabBottom = showIndexBar ? bottomInset + indexBarHeight + 32 : bottomInset + 24;
 
     return (
         <StyledSafeAreaView edges={['top']} className="flex-1 bg-white">
@@ -169,21 +129,31 @@ export default function Home() {
             <StyledView className="bg-white z-10 border-b border-gray-100 px-4 py-3">
                 <StyledView className="flex-row items-center justify-between mb-3">
                     <StyledText className="text-xl font-bold text-gray-900">홈</StyledText>
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                        <Bell size={20} color="#000" />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-full"
+                        onPress={handleNotificationPress}
+                        disabled={isRegisteringPush && permissionStatus !== "granted"}
+                    >
+                        <StyledView className="relative">
+                            <Bell size={20} color="#000" />
+                            {shouldShowPushIndicator && (
+                                <StyledView className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-rose-500" />
+                            )}
+                        </StyledView>
                     </Button>
                 </StyledView>
-                <StyledView className="relative mb-3 justify-center">
-                    <StyledView className="absolute left-3 z-10">
-                        <Search size={16} color="#9ca3af" />
-                    </StyledView>
-                    <Input
-                        placeholder="검색"
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        className="pl-10 bg-gray-50 border-0 rounded-full h-10"
-                    />
-                </StyledView>
+                <StyledTouchableOpacity
+                    onPress={() => router.push('/search')}
+                    className="flex-row items-center bg-gray-50 border border-gray-100 rounded-full h-11 px-4 mb-3"
+                    activeOpacity={0.8}
+                >
+                    <Search size={16} color="#9ca3af" />
+                    <StyledText className="ml-2 text-sm text-gray-500">
+                        뉴스 · 커뮤니티 · 공모전 검색
+                    </StyledText>
+                </StyledTouchableOpacity>
 
                 {/* Tabs */}
                 <StyledView className="flex-row border-b border-gray-200">
@@ -201,7 +171,7 @@ export default function Home() {
                 </StyledView>
             </StyledView>
 
-            <StyledScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 140 }}>
+            <StyledScrollView className="flex-1" contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}>
                 {activeTab === '뉴스레터' ? (
                     <>
                         {/* Today's News Summary */}
@@ -229,7 +199,7 @@ export default function Home() {
                                         </StyledView>
                                     ))
                                 ) : (
-                                    filteredNews.slice(0, 4).map((news) => (
+                                    newsList.slice(0, 4).map((news) => (
                                         <StyledView key={news.id} className="w-[48%]">
                                             <NewsCard news={news} />
                                         </StyledView>
@@ -257,7 +227,7 @@ export default function Home() {
                                 </StyledView>
                             ) : (
                                 <StyledView>
-                                    {filteredPopular.map((post) => (
+                                    {popularPosts.map((post) => (
                                         <CommunityPostCard key={post.id} post={post} />
                                     ))}
                                 </StyledView>
@@ -267,61 +237,28 @@ export default function Home() {
                 )}
             </StyledScrollView>
 
-            <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
-                <StockTicker indices={displayIndices} onPressIndex={handleOpenIndexModal} />
-                <View style={{ height: indexBarBottom }} />
-            </View>
+            {showIndexBar && (
+                <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: bottomInset }}>
+                    <StockTicker indices={displayIndices} onPressIndex={handleOpenIndexModal} />
+                </View>
+            )}
 
             {/* Floating Action Button */}
             {activeTab === '인기글' && (
                 <StyledTouchableOpacity
                     onPress={() => router.push('/write-post')}
                     className="absolute right-6 w-14 h-14 rounded-full bg-indigo-600 items-center justify-center shadow-lg z-50"
-                    style={{ bottom: indexBarBottom + 72 }}
+                    style={{ bottom: fabBottom }}
                 >
                     <Edit3 size={24} color="white" />
                 </StyledTouchableOpacity>
             )}
-
-            <Modal
+            <MarketIndexGuideModal
                 visible={showIndexModal}
-                animationType="slide"
-                transparent
-                onRequestClose={() => setShowIndexModal(false)}
-            >
-                <Pressable className="flex-1 bg-black/40" onPress={() => setShowIndexModal(false)} />
-                <StyledView className="bg-white rounded-t-3xl px-5 pt-5 pb-8" style={{ gap: 12 }}>
-                    <StyledView className="flex-row items-center justify-between mb-2">
-                        <StyledText className="text-lg font-bold text-gray-900">지수 안내</StyledText>
-                        <TouchableOpacity onPress={() => setShowIndexModal(false)}>
-                            <X size={20} color="#1f2937" />
-                        </TouchableOpacity>
-                    </StyledView>
-                    <StyledView className="border border-gray-100 rounded-2xl px-4 py-4 bg-gray-50">
-                        <StyledText className="text-sm text-gray-500 mb-1">{selectedIndexInfo.label}</StyledText>
-                        <StyledText className="text-2xl font-bold text-gray-900 mb-1">{selectedIndexInfo.value}</StyledText>
-                        {selectedIndexInfo.change && (
-                            <StyledText
-                                className="text-sm font-semibold"
-                                style={{ color: selectedIndexInfo.change.startsWith('+') ? '#16a34a' : '#dc2626' }}
-                            >
-                                {selectedIndexInfo.change}
-                            </StyledText>
-                        )}
-                    </StyledView>
-                    <StyledText className="text-sm text-gray-700 leading-6">
-                        {selectedIndexInfo.description}
-                    </StyledText>
-                    {selectedIndexInfo.note && (
-                        <StyledText className="text-xs text-gray-500 bg-indigo-50 rounded-2xl px-3 py-2">
-                            {selectedIndexInfo.note}
-                        </StyledText>
-                    )}
-                    <StyledText className="text-xs text-gray-400">
-                        * 실시간 지수 연동은 API 확정 후 적용 예정입니다.
-                    </StyledText>
-                </StyledView>
-            </Modal>
+                onClose={() => setShowIndexModal(false)}
+                selectedIndexId={selectedIndexId}
+                indices={displayIndices}
+            />
         </StyledSafeAreaView>
     );
 }

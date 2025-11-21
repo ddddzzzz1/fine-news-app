@@ -12,6 +12,7 @@ import {
     updateProfile,
     signOut,
 } from "firebase/auth";
+import { logAuthEvent, isTestAccountEmail } from "../lib/authLogger";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 const StyledView = styled(View);
@@ -47,6 +48,56 @@ export default function Register() {
     const validatePassword = (value) =>
         passwordValidators.every((validator) => validator.check(value));
 
+    const getVerificationPrompt = async (user, normalizedEmail) => {
+        if (!user) {
+            logAuthEvent("sign_up_verification_skipped_no_user", { email: normalizedEmail });
+            return {
+                title: "회원가입 완료",
+                message: "계정이 생성되었지만 사용자 정보를 확인할 수 없습니다. 로그인 화면에서 다시 시도해주세요.",
+            };
+        }
+
+        if (user.emailVerified) {
+            logAuthEvent("sign_up_email_already_verified", {
+                email: normalizedEmail,
+                uid: user.uid,
+            });
+            return {
+                title: "이미 인증 완료",
+                message: `해당 이메일(${normalizedEmail})은 이미 인증되어 있습니다. 바로 로그인해주세요.`,
+            };
+        }
+
+        const isTestAccount = isTestAccountEmail(normalizedEmail);
+        const testAccountNote = isTestAccount
+            ? "\n테스트 계정: 인증 메일이 도착했는지 받은 편지함을 확인해주세요."
+            : "";
+
+        try {
+            await sendEmailVerification(user);
+            logAuthEvent("sign_up_email_verification_sent", {
+                email: normalizedEmail,
+                uid: user.uid,
+                isTestAccount,
+            });
+            return {
+                title: "회원가입 완료",
+                message: `가입하신 이메일로 인증 메일을 보냈습니다. 인증 후 다시 로그인해주세요.${testAccountNote}`,
+            };
+        } catch (verificationError) {
+            logAuthEvent("sign_up_email_verification_failed", {
+                email: normalizedEmail,
+                uid: user.uid,
+                code: verificationError?.code,
+                message: verificationError?.message,
+            });
+            return {
+                title: "인증 메일 발송 실패",
+                message: "계정은 생성되었지만 인증 메일을 보내지 못했습니다. 잠시 후 다시 시도하거나 관리자에게 문의해주세요.",
+            };
+        }
+    };
+
     const handleRegister = async () => {
         const trimmedEmail = email.trim().toLowerCase();
         const trimmedName = displayName.trim();
@@ -76,19 +127,39 @@ export default function Register() {
         }
         setLoading(true);
         try {
+            logAuthEvent("sign_up_attempt", { email: trimmedEmail });
             const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
+            logAuthEvent("sign_up_success", {
+                email: trimmedEmail,
+                uid: userCredential.user?.uid,
+            });
+
+            const verificationPrompt = await getVerificationPrompt(userCredential.user, trimmedEmail);
+
             if (trimmedName) {
-                await updateProfile(userCredential.user, { displayName: trimmedName });
+                try {
+                    await updateProfile(userCredential.user, { displayName: trimmedName });
+                    logAuthEvent("sign_up_profile_updated", {
+                        uid: userCredential.user.uid,
+                    });
+                } catch (profileError) {
+                    logAuthEvent("sign_up_profile_update_failed", {
+                        uid: userCredential.user?.uid,
+                        code: profileError?.code,
+                        message: profileError?.message,
+                    });
+                }
             }
-            await sendEmailVerification(userCredential.user);
-            Alert.alert(
-                "회원가입 완료",
-                "가입하신 이메일로 인증 메일을 보냈습니다. 인증 후 다시 로그인해주세요."
-            );
+
+            Alert.alert(verificationPrompt.title, verificationPrompt.message);
             await signOut(auth);
             router.replace("/login");
         } catch (error) {
-            console.log("Registration failed", error);
+            logAuthEvent("sign_up_failed", {
+                email: trimmedEmail,
+                code: error?.code,
+                message: error?.message,
+            });
             let message = "회원가입에 실패했습니다. 다시 시도해주세요.";
             if (error.code === "auth/email-already-in-use") {
                 message = "이미 사용 중인 이메일입니다.";

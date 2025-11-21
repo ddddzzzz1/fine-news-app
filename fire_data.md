@@ -37,8 +37,9 @@ This app expects four top-level collections. Seed them in Cloud Firestore (or vi
 | `title` | string | Event title in the calendar cells. |
 | `description` | string | Short description shown below the calendar. |
 | `date` | timestamp | Event day; determines calendar placement. |
-| `category` | string | Must match color map (`경제`, `공모전`, `모둠인턴`, `마이`, `금융연수`, `오픈콘텐츠`, etc.). |
+| `category` | string | Must match color map (`경제`, `공모전`, `인턴`, `마이`, `금융연수`, `오픈콘텐츠`, etc.). |
 | `is_personal` | boolean | Used for the “마이 이벤트” filter. |
+| `user_id` | string (required for personal) | Owner UID for user-created events; required when `is_personal = true`. |
 
 ### 4. `contests`
 | Field | Type | Notes |
@@ -50,7 +51,7 @@ This app expects four top-level collections. Seed them in Cloud Firestore (or vi
 | `views` | number | Optional metric. |
 | `category` | string | One of `공모전`, `신입/인턴`, `대외활동` (drives the tabs in the contests screen). |
 | `start_date` | timestamp (optional) | Used to show 모집 시작일 in the detail screen. |
-| `description` | string (optional) | Detail description text. |
+| `description` | string (optional, HTML supported) | Detail description text. You can include `<strong>`, `<em>`, `<u>`, `<span style="color:#...">`, lists, etc. Stored strings are sanitized via `shared/contestRichText`. |
 | `apply_url` | string (optional) | External link for 지원하기 버튼. |
 
 ### 5. `contest_details`
@@ -62,9 +63,9 @@ This app expects four top-level collections. Seed them in Cloud Firestore (or vi
 | `start_date` | timestamp | 모집 시작일. |
 | `end_date` | timestamp | 모집 마감일. |
 | `image_url` | string | Poster image. |
-| `description` | string | 상세 소개. |
-| `requirements` | string | 지원 자격. |
-| `benefits` | string | 참여 혜택. |
+| `description` | string | 상세 소개. Supports HTML (same whitelist as above, sanitized before save). |
+| `requirements` | string | 지원 자격. Supports HTML (sanitized). |
+| `benefits` | string | 참여 혜택. Supports HTML (sanitized). |
 | `apply_url` | string | External 링크. |
 
 ### 6. `saved_contests`
@@ -102,6 +103,67 @@ Document ID = Firebase Auth UID. Tracks student verification.
 | `updated_at` | timestamp | Last review time. |
 
 > Default new users to `verification_status = "unverified"` and bump them to `pending`/`verified` during manual review.
+
+### 8. `user_push_settings`
+Document ID = Firebase Auth UID. Stores Expo push tokens + per-topic preferences.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `user_id` | string | Same as document ID. |
+| `enabled` | boolean | Global opt-in toggle. Defaults to `true` when the user accepts permissions. |
+| `expo_push_tokens` | array\<object> | Most recent device tokens (max 5). Each entry: `{ token, platform, device_name, app_version, last_seen }`. |
+| `preferences` | object | `{ newsletters, contests, community, reminders }` booleans for topic subscriptions. |
+| `quiet_hours` | object | `{ start_hour, end_hour }` using 24h format. |
+| `timezone` | string | IANA timezone string (default `Asia/Seoul`). |
+| `updated_at` | timestamp | Last update timestamp. |
+
+### 9. `newsletters`
+| Field | Type | Notes |
+| --- | --- | --- |
+| `title` | string | Main headline rendered on the 뉴스레터 탭 and 상세 화면. |
+| `subtitle` | string (optional) | Short dek/subtitle below the title. |
+| `content` | string | Full text body, paragraphs separated by `\n\n`. |
+| `tags` | array\<string> | Up to 5 topical tags (rendered as #chips). |
+| `image_url` | string (optional) | Hero image URL. |
+| `edition` | string (optional) | E.g., `"Vol.12"`. Surfaces in search metadata. |
+| `source` | string (optional) | Newsletter brand/author name. |
+| `published_date` | timestamp/string | Used for sorting & detail header. |
+| `created_date` | timestamp/string | Fallback timestamp. |
+
+### 10. `notification_requests`
+Used by Firebase Functions to fan-out push alarms.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `title` | string | Notification title. |
+| `body` | string | Notification body. |
+| `data` | object | Extra payload delivered to the client (e.g., `{ screen: "/newsletters/abc123" }`). |
+| `target` | object | `{ type: "topic" | "user", key: "newsletters" | uid }` describing the audience. |
+| `send_after` | timestamp | When the push should be sent (UTC). |
+| `created_by` | string | Optional admin UID/email for auditing. |
+
+## Search / Algolia Extension Setup
+
+- Install the **Search Firestore with Algolia** extension (`algolia/firestore-algolia-search`) once per collection that needs full-text search.
+- For each installation, supply the same Algolia app credentials but use a different **Collection Path** and **Index Name**. Enable “Full index existing documents” during install so legacy docs are synced.
+- Set **Indexable Fields** to `title,tags,content` to match the in-app search expectations. Other fields are stored automatically so cards can still show metadata.
+- Recommended naming & configuration:
+
+| Collection Path | Suggested Algolia Index Name | Notes |
+| --- | --- | --- |
+| `news` | `fine_news_news` | Title/summary used on 홈 · 뉴스 상세. |
+| `newsletters` | `fine_news_newsletters` | Drives the 별도 뉴스레터 상세 화면. |
+| `community_posts` | `fine_news_community_posts` | Allows 검색에서 게시판/학교 기준 필터. |
+| `contests` | `fine_news_contests` | Exposes 카테고리/주최/설명 검색. |
+
+- `firebase ext:install algolia/firestore-algolia-search --project=<PROJECT_ID>` (run four times). When prompted:
+  - **Database ID:** `(default)`
+  - **Collection Path:** one of the entries above.
+  - **Indexable Fields:** `title,tags,content`
+  - **Force Data Sync:** `false` (optional)
+  - **Algolia Index Name:** as listed above.
+  - **Algolia Application Id / API Key:** use the write-capable key (not the admin key).
+- The Expo app reads the search-only key from `app.json > extra.algolia` (`appId`, `searchApiKey`, `indexPrefix`). Update those values with real credentials before building.
 
 ### Seeding Scripts
 - `node scripts/seedAll.js` → populates `news`, `calendar_events`, `community_posts`, `contests`, `contest_details`, `saved_contests`, and sample `user_profiles`.

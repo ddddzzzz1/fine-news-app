@@ -36,7 +36,7 @@ const calendarEvents = [
         title: "AI 해커톤 준비 모임",
         description: "해커톤 참가 예정자를 위한 준비 모임",
         date: admin.firestore.Timestamp.fromDate(new Date("2025-02-10")),
-        category: "모둠인턴",
+        category: "인턴",
         is_personal: false,
     },
     {
@@ -128,6 +128,7 @@ const userProfiles = [
 ];
 
 const contestData = require("./seedContestsData.json");
+const { sanitizeContestFields } = require("../shared/contestRichText");
 
 async function seedNews() {
     await Promise.all(
@@ -164,20 +165,21 @@ async function seedCommunity() {
 async function seedContestCollections() {
     const batch = db.batch();
     contestData.forEach((contest) => {
+        const sanitizedContest = sanitizeContestFields(contest);
         const contestRef = db.collection("contests").doc(contest.id);
         const detailRef = db.collection("contest_details").doc(contest.id);
         batch.set(contestRef, {
-            title: contest.title,
-            organizer: contest.organizer,
-            category: contest.category,
-            start_date: contest.start_date,
-            end_date: contest.end_date,
-            image_url: contest.image_url,
-            views: contest.views,
-            description: contest.description,
-            apply_url: contest.apply_url,
+            title: sanitizedContest.title,
+            organizer: sanitizedContest.organizer,
+            category: sanitizedContest.category,
+            start_date: sanitizedContest.start_date,
+            end_date: sanitizedContest.end_date,
+            image_url: sanitizedContest.image_url,
+            views: sanitizedContest.views,
+            description: sanitizedContest.description,
+            apply_url: sanitizedContest.apply_url,
         });
-        batch.set(detailRef, contest);
+        batch.set(detailRef, sanitizedContest);
     });
     await batch.commit();
     console.log("Seeded contests and contest_details.");

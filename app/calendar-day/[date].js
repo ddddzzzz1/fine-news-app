@@ -7,7 +7,7 @@ import { Button } from "../../components/ui/button";
 import { ArrowLeft } from "lucide-react-native";
 import { useQuery } from "@tanstack/react-query";
 import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
-import { db } from "../../firebaseConfig";
+import { db, auth } from "../../firebaseConfig";
 import { format, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
 
@@ -33,13 +33,33 @@ const categorySections = [
     { key: "공모전", label: "공모전" },
     { key: "대외활동", label: "대외활동" },
     { key: "오픈콘텐츠", label: "오픈 콘텐츠" },
-    { key: "모둠인턴", label: "모둠 인턴" },
+    { key: "인턴", label: "인턴" },
 ];
+
+const normalizeCategory = (value) => {
+    if (!value) return "";
+    if (value === "모둠인턴" || value === "모둠 인턴") return "인턴";
+    return value;
+};
+
+const resolveEventDate = (value) => {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (typeof value?.toDate === "function") return value.toDate();
+    if (typeof value === "string" || typeof value === "number") return new Date(value);
+    if (typeof value === "object" && typeof value.seconds === "number") {
+        const milliseconds = value.seconds * 1000 + (value.nanoseconds || 0) / 1_000_000;
+        return new Date(milliseconds);
+    }
+    return new Date(value);
+};
 
 export default function DayEventsScreen() {
     const router = useRouter();
     const { date } = useLocalSearchParams();
     const selectedDate = date ? new Date(date) : new Date();
+    const currentUser = auth.currentUser;
+    const userId = currentUser?.uid;
 
     const { data: events = [], isLoading } = useQuery({
         queryKey: ["calendar-events"],
@@ -58,13 +78,18 @@ export default function DayEventsScreen() {
 
     const eventsForDay = useMemo(() => {
         const source = events.length ? events : fallbackEvents;
-        return source.filter((event) => isSameDay(new Date(event.date), selectedDate));
-    }, [events, selectedDate]);
+        return source.filter((event) => {
+            const eventDate = resolveEventDate(event.date);
+            if (!eventDate || !isSameDay(eventDate, selectedDate)) return false;
+            if (event.is_personal && event.user_id && event.user_id !== userId) return false;
+            return true;
+        });
+    }, [events, selectedDate, userId]);
 
     const groupedEvents = useMemo(() => {
         const groups = {};
         eventsForDay.forEach((event) => {
-            const key = event.category || "기타";
+            const key = normalizeCategory(event.category) || "기타";
             if (!groups[key]) groups[key] = [];
             groups[key].push(event);
         });
@@ -72,15 +97,19 @@ export default function DayEventsScreen() {
     }, [eventsForDay]);
 
     const renderEvents = (eventsList) =>
-        eventsList.map((event) => (
-            <StyledView key={event.id} className="p-4 border border-gray-200 rounded-lg mb-2 bg-white">
-                <StyledText className="text-base font-semibold text-gray-900 mb-1">{event.title}</StyledText>
-                {event.description && <StyledText className="text-sm text-gray-600 mb-1">{event.description}</StyledText>}
-                <StyledText className="text-xs text-gray-500">
-                    {event.category || "기타"} · {event.date ? format(new Date(event.date), "HH:mm", { locale: ko }) : ""}
-                </StyledText>
-            </StyledView>
-        ));
+        eventsList.map((event) => {
+            const eventDate = resolveEventDate(event.date);
+            const category = normalizeCategory(event.category) || "기타";
+            return (
+                <StyledView key={event.id} className="p-4 border border-gray-200 rounded-lg mb-2 bg-white">
+                    <StyledText className="text-base font-semibold text-gray-900 mb-1">{event.title}</StyledText>
+                    {event.description && <StyledText className="text-sm text-gray-600 mb-1">{event.description}</StyledText>}
+                    <StyledText className="text-xs text-gray-500">
+                        {category} · {eventDate ? format(eventDate, "HH:mm", { locale: ko }) : ""}
+                    </StyledText>
+                </StyledView>
+            );
+        });
 
     return (
         <StyledSafeAreaView edges={["top"]} className="flex-1 bg-white">

@@ -1,11 +1,17 @@
 {
-    "firestore": {
-        "rules": "firestore.rules"
-    },
-    "functions": {
-        "source": "functions"
-    },
-    "storage": {
-        "rules": "storage.rules"
-    }
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "functions": {
+    "source": "functions"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "extensions": {
+    "firestore-algolia-search": "algolia/firestore-algolia-search@1.2.10",
+    "firestore-algolia-search-v181": "algolia/firestore-algolia-search@1.2.10",
+    "firestore-algolia-search-xk6s": "algolia/firestore-algolia-search@1.2.10",
+    "firestore-algolia-search-b73e": "algolia/firestore-algolia-search@1.2.10"
+  }
 }

@@ -28,11 +28,17 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-notifications"
     ],
     "extra": {
       "eas": {
         "projectId": "749eafd0-be31-4fed-87f5-834764482cd8"
+      },
+      "algolia": {
+        "appId": "A2Y5BGD58B",
+        "searchApiKey": "665d181fa9fea00153780ed6948066ac",
+        "indexPrefix": "fine_news"
       }
     }
   }
