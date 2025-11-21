@@ -22,4 +22,5 @@ Stick to the existing Tailwind utility classes for layout; avoid custom inline s
 After Firestore mutations, invalidate the relevant React Query keys to keep UI consistent.
 When extending Firestore schema, update fire_data.md.
 Keep user-facing strings in Korean like current UI copy unless instructed otherwise.
+After completing any item from `TODO_PLAN.md`, update that file to mark the item’s status (e.g., “Pending” → “Done”) so the team can track progress.
 Follow these rules verbatim so your contributions stay consistent with the current project style and infrastructure.

@@ -1,25 +1,39 @@
-import React from 'react';
-import { View, Text } from 'react-native';
-import { styled } from 'nativewind';
+import React from "react";
+import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { styled } from "nativewind";
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
+const StyledTouchableOpacity = styled(TouchableOpacity);
+const StyledScrollView = styled(ScrollView);
 
-export default function StockTicker() {
+export default function StockTicker({ indices = [], onPressIndex }) {
+    if (!indices.length) return null;
+
     return (
-        <StyledView className="bg-white border-t border-gray-200 py-2 px-4">
-            <StyledView className="flex-row items-center justify-between">
-                <StyledView className="flex-row items-center space-x-2">
-                    <StyledText className="text-xs text-gray-600">환율</StyledText>
-                    <StyledText className="text-xs font-semibold">1,461.42</StyledText>
-                    <StyledText className="text-xs text-blue-600">-0.5%</StyledText>
-                </StyledView>
-                <StyledView className="flex-row items-center space-x-2">
-                    <StyledText className="text-xs text-gray-600">나스닥</StyledText>
-                    <StyledText className="text-xs font-semibold">22,870.35</StyledText>
-                    <StyledText className="text-xs text-red-600">-2.2%</StyledText>
-                </StyledView>
-            </StyledView>
+        <StyledView className="bg-white border-t border-gray-200 px-4 py-3 shadow-lg">
+            <StyledScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {indices.map((item) => {
+                    const isUp = item.change?.startsWith("+");
+                    const color = isUp ? "#16a34a" : "#dc2626";
+                    return (
+                        <StyledTouchableOpacity
+                            key={item.id}
+                            className="mr-4"
+                            onPress={() => onPressIndex?.(item)}
+                            activeOpacity={0.8}
+                        >
+                            <StyledText className="text-xs text-gray-500">{item.label}</StyledText>
+                            <StyledText className="text-sm font-semibold text-gray-900">{item.value}</StyledText>
+                            {item.change && (
+                                <StyledText className="text-xs font-semibold" style={{ color }}>
+                                    {item.change}
+                                </StyledText>
+                            )}
+                        </StyledTouchableOpacity>
+                    );
+                })}
+            </StyledScrollView>
         </StyledView>
     );
 }

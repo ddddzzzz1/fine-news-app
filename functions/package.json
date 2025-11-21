@@ -1,0 +1,17 @@
+{
+  "name": "fine-news-functions",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "engines": {
+    "node": "18"
+  },
+  "scripts": {
+    "build": "echo \"No build step\""
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^5.1.0",
+    "node-fetch": "^2.6.12",
+    "yahoo-finance2": "^2.4.1"
+  }
+}
