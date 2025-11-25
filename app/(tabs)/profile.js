@@ -93,7 +93,7 @@ export default function Profile() {
         { icon: Bookmark, label: "저장한 공고", count: savedContests?.length || 0, action: () => router.push("/saved-contests") },
         { icon: Bell, label: "알림 설정", count: null, action: () => router.push("/notification-settings") },
         { icon: HelpCircle, label: "도움말", count: null, action: () => router.push("/help") },
-        { icon: Settings, label: "설정", count: null },
+        { icon: Settings, label: "설정", count: null, action: () => router.push("/settings") },
     ];
 
     const handleLogout = async () => {
@@ -114,7 +114,12 @@ export default function Profile() {
             <StyledScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 32 }}>
                 <StyledView className="bg-white border-b border-gray-100 px-4 py-3 flex-row items-center justify-between">
                     <StyledText className="text-xl font-bold text-gray-900">마이</StyledText>
-                    <Button variant="ghost" size="icon" className="rounded-full">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-full"
+                        onPress={() => router.push("/settings")}
+                    >
                         <Settings size={20} color="#111827" />
                     </Button>
                 </StyledView>
