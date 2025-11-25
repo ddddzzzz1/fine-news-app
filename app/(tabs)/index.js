@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useQuery } from '@tanstack/react-query';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
@@ -26,6 +27,7 @@ const StyledScrollView = styled(ScrollView);
 export default function Home() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const tabBarHeight = useBottomTabBarHeight?.() ?? 0;
     const [activeTab, setActiveTab] = useState('뉴스레터');
     const [showIndexModal, setShowIndexModal] = useState(false);
     const { indices: displayIndices } = useMarketIndices();
@@ -119,8 +121,10 @@ export default function Home() {
     const bottomInset = useMemo(() => Math.max(insets.bottom, 16), [insets.bottom]);
     const showIndexBar = displayIndices.length > 0 && !keyboardVisible;
     const indexBarHeight = 76;
-    const scrollPaddingBottom = showIndexBar ? bottomInset + indexBarHeight + 64 : 48;
-    const fabBottom = showIndexBar ? bottomInset + indexBarHeight + 32 : bottomInset + 24;
+    const baseBottomOffset = Math.max(tabBarHeight, bottomInset);
+    const tickerBottomOffset = tabBarHeight || bottomInset;
+    const scrollPaddingBottom = showIndexBar ? baseBottomOffset + indexBarHeight + 32 : baseBottomOffset + 32;
+    const fabBottom = showIndexBar ? baseBottomOffset + indexBarHeight + 24 : baseBottomOffset + 24;
 
     return (
         <StyledSafeAreaView edges={['top']} className="flex-1 bg-white">
@@ -238,7 +242,7 @@ export default function Home() {
             </StyledScrollView>
 
             {showIndexBar && (
-                <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: bottomInset }}>
+                <View style={{ position: 'absolute', left: 0, right: 0, bottom: tickerBottomOffset }}>
                     <StockTicker indices={displayIndices} onPressIndex={handleOpenIndexModal} />
                 </View>
             )}
