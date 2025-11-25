@@ -1,12 +1,12 @@
-import React, { useMemo } from "react";
-import { View, Text, ScrollView } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Text, ScrollView, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Button } from "../../components/ui/button";
 import { ArrowLeft } from "lucide-react-native";
-import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { collection, getDocs, orderBy, query, limit, deleteDoc, doc } from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
 import { format, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -60,6 +60,8 @@ export default function DayEventsScreen() {
     const selectedDate = date ? new Date(date) : new Date();
     const currentUser = auth.currentUser;
     const userId = currentUser?.uid;
+    const queryClient = useQueryClient();
+    const [deletingId, setDeletingId] = useState(null);
 
     const { data: events = [], isLoading } = useQuery({
         queryKey: ["calendar-events"],
@@ -96,6 +98,44 @@ export default function DayEventsScreen() {
         return groups;
     }, [eventsForDay]);
 
+    const handleDeletePersonalEvent = (event) => {
+        if (!event?.id || !event.is_personal || event.user_id !== userId) return;
+        Alert.alert("일정 삭제", "이 개인 일정을 삭제할까요?", [
+            { text: "취소", style: "cancel" },
+            {
+                text: "삭제",
+                style: "destructive",
+                onPress: async () => {
+                    try {
+                        setDeletingId(event.id);
+                        await deleteDoc(doc(db, "calendar_events", event.id));
+                        await queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
+                        Alert.alert("삭제 완료", "일정을 삭제했습니다.");
+                    } catch (error) {
+                        console.log("Failed to delete personal event", error);
+                        Alert.alert("오류", "일정을 삭제하지 못했습니다. 다시 시도해주세요.");
+                    } finally {
+                        setDeletingId(null);
+                    }
+                },
+            },
+        ]);
+    };
+
+    const renderDeleteAction = (event) => {
+        if (!event?.is_personal || event.user_id !== userId) return null;
+        return (
+            <Button
+                variant="ghost"
+                className="mt-2 self-end"
+                onPress={() => handleDeletePersonalEvent(event)}
+                disabled={deletingId === event.id}
+            >
+                {deletingId === event.id ? "삭제 중..." : "삭제"}
+            </Button>
+        );
+    };
+
     const renderEvents = (eventsList) =>
         eventsList.map((event) => {
             const eventDate = resolveEventDate(event.date);
@@ -107,6 +147,7 @@ export default function DayEventsScreen() {
                     <StyledText className="text-xs text-gray-500">
                         {category} · {eventDate ? format(eventDate, "HH:mm", { locale: ko }) : ""}
                     </StyledText>
+                    {renderDeleteAction(event)}
                 </StyledView>
             );
         });

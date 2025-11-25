@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { collection, getDocs, orderBy, query, limit, setDoc, doc, Timestamp } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, limit, setDoc, doc, Timestamp, deleteDoc } from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
 import { useRouter } from "expo-router";
 import {
@@ -83,6 +83,7 @@ export default function CalendarTab() {
     const [newEventDate, setNewEventDate] = useState(new Date());
     const [newEventCategory, setNewEventCategory] = useState("마이");
     const [isSavingEvent, setIsSavingEvent] = useState(false);
+    const [deletingEventId, setDeletingEventId] = useState(null);
     const router = useRouter();
     const queryClient = useQueryClient();
     const currentUser = auth.currentUser;
@@ -250,6 +251,30 @@ export default function CalendarTab() {
         }
     };
 
+    const handleDeletePersonalEvent = (event) => {
+        if (!event?.id || !event.is_personal || event.user_id !== userId) return;
+        Alert.alert("일정 삭제", "이 개인 일정을 삭제할까요?", [
+            { text: "취소", style: "cancel" },
+            {
+                text: "삭제",
+                style: "destructive",
+                onPress: async () => {
+                    try {
+                        setDeletingEventId(event.id);
+                        await deleteDoc(doc(db, "calendar_events", event.id));
+                        await queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
+                        Alert.alert("삭제 완료", "일정을 삭제했습니다.");
+                    } catch (error) {
+                        console.log("Failed to delete personal event", error);
+                        Alert.alert("오류", "일정을 삭제하지 못했습니다. 다시 시도해주세요.");
+                    } finally {
+                        setDeletingEventId(null);
+                    }
+                },
+            },
+        ]);
+    };
+
     return (
         <StyledSafeAreaView edges={["top"]} className="flex-1 bg-white">
             <StyledView className="border-b border-gray-100 px-4 py-3">
@@ -398,24 +423,35 @@ export default function CalendarTab() {
                                     const eventDate = resolveEventDate(event.date);
                                     const category = getEventCategory(event);
                                     return (
-                                    <StyledView
-                                        key={event.id}
-                                        className="mb-3 p-3 border border-gray-200 rounded-lg bg-gray-50"
-                                    >
-                                        <StyledText className="text-sm font-semibold text-gray-900 mb-1">
-                                            {event.title}
-                                        </StyledText>
-                                        {event.description && (
-                                            <StyledText className="text-xs text-gray-600 mb-1">
-                                                {event.description}
+                                        <StyledView
+                                            key={event.id}
+                                            className="mb-3 p-3 border border-gray-200 rounded-lg bg-gray-50"
+                                        >
+                                            <StyledText className="text-sm font-semibold text-gray-900 mb-1">
+                                                {event.title}
                                             </StyledText>
-                                        )}
-                                        <StyledText className="text-[11px] text-gray-500">
-                                            {category} · {eventDate ? format(eventDate, "HH:mm", { locale: ko }) : ""}
-                                        </StyledText>
-                                    </StyledView>
-                                );
-                            })
+                                            {event.description && (
+                                                <StyledText className="text-xs text-gray-600 mb-1">
+                                                    {event.description}
+                                                </StyledText>
+                                            )}
+                                            <StyledText className="text-[11px] text-gray-500">
+                                                {category} · {eventDate ? format(eventDate, "HH:mm", { locale: ko }) : ""}
+                                            </StyledText>
+                                            {event.is_personal && event.user_id === userId && (
+                                                <StyledView className="flex-row justify-end mt-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        onPress={() => handleDeletePersonalEvent(event)}
+                                                        disabled={deletingEventId === event.id}
+                                                    >
+                                                        {deletingEventId === event.id ? "삭제 중..." : "삭제"}
+                                                    </Button>
+                                                </StyledView>
+                                            )}
+                                        </StyledView>
+                                    );
+                                })
                             ) : (
                                 <StyledText className="text-sm text-gray-500">해당 날짜에 이벤트가 없습니다.</StyledText>
                             )}
