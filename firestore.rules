@@ -24,7 +24,6 @@ service cloud.firestore {
         && request.resource.data.created_by == resource.data.created_by
         && request.resource.data.created_date == resource.data.created_date
         && request.resource.data.user_id == resource.data.user_id
-        && request.resource.data.views == resource.data.views
         && (request.resource.data.image_url == resource.data.image_url)
         && (request.resource.data.image_meta == resource.data.image_meta);
     }

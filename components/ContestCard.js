@@ -3,7 +3,6 @@ import { Link } from 'expo-router';
 import { View, Text, Image, Pressable } from 'react-native';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { Eye } from 'lucide-react-native';
 import { styled } from 'nativewind';
 
 const StyledView = styled(View);
@@ -43,10 +42,6 @@ export default function ContestCard({ contest }) {
                                     D-{Math.ceil((new Date(contest.end_date) - new Date()) / (1000 * 60 * 60 * 24))}
                                 </StyledText>
                             </Badge>
-                            <StyledView className="flex-row items-center space-x-1">
-                                <Eye size={12} color="#6b7280" />
-                                <StyledText className="text-xs text-gray-500">{contest.views || 0}</StyledText>
-                            </StyledView>
                         </StyledView>
                     </StyledView>
                 </Card>

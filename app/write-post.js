@@ -155,7 +155,6 @@ export default function WritePost() {
                 user_id: userId || "anonymous",
                 created_by: currentUser?.email || "demo@example.com",
                 created_date: serverTimestamp(),
-                views: 0,
                 liked_users: [],
                 like_count: 0,
                 comments: [],

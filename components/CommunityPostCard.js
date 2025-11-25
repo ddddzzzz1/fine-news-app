@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'expo-router';
 import { View, Text, Pressable, TouchableOpacity, Image, Alert } from 'react-native';
 import { Card } from './ui/card';
-import { MessageCircle, Eye, Heart } from 'lucide-react-native';
+import { MessageCircle, Heart } from 'lucide-react-native';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { styled } from 'nativewind';
@@ -103,10 +103,6 @@ export default function CommunityPostCard({ post }) {
                             {createdDate ? format(createdDate, 'yy.MM.dd', { locale: ko }) : '날짜 미정'}
                         </StyledText>
                         <StyledView className="flex-row items-center space-x-3">
-                            <StyledView className="flex-row items-center space-x-1">
-                                <Eye size={12} color="#6b7280" />
-                                <StyledText className="text-xs text-gray-500">{post.views || 0}</StyledText>
-                            </StyledView>
                             <StyledView className="flex-row items-center space-x-1">
                                 <MessageCircle size={12} color="#6b7280" />
                                 <StyledText className="text-xs text-gray-500">{post.comment_count || 0}</StyledText>

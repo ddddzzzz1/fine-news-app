@@ -84,7 +84,6 @@ const communityPosts = [
         user_id: "demo-user",
         created_by: "admin@fine.com",
         created_date: now,
-        views: 120,
         liked_users: [],
         like_count: 0,
         comments: [],
@@ -175,7 +174,6 @@ async function seedContestCollections() {
             start_date: sanitizedContest.start_date,
             end_date: sanitizedContest.end_date,
             image_url: sanitizedContest.image_url,
-            views: sanitizedContest.views,
             description: sanitizedContest.description,
             apply_url: sanitizedContest.apply_url,
         });

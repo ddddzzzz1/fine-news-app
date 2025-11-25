@@ -24,7 +24,6 @@ This app expects four top-level collections. Seed them in Cloud Firestore (or vi
 | `image_url` | string | Optional download URL for the uploaded image (Storage path: `community_posts/{uid}/...`). |
 | `image_meta` | object | Optional metadata `{ width, height, size, storage_path }` stored with the download URL for aspect ratios + cleanup jobs. |
 | `created_date` | timestamp | Sort order. |
-| `views` | number | Optional metric. |
 | `comment_count` | number | Optional metric. |
 | `created_by` | string | User email/ID for ownership. |
 | `like_count` | number | Total likes, used for 인기글 노출. |
@@ -48,7 +47,6 @@ This app expects four top-level collections. Seed them in Cloud Firestore (or vi
 | `organizer` | string | Host organization. |
 | `end_date` | timestamp | Used to calculate `D-` countdown. |
 | `image_url` | string | Optional poster image. |
-| `views` | number | Optional metric. |
 | `category` | string | One of `공모전`, `신입/인턴`, `대외활동` (drives the tabs in the contests screen). |
 | `start_date` | timestamp (optional) | Used to show 모집 시작일 in the detail screen. |
 | `description` | string (optional) | Detail description text. |
