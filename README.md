@@ -173,20 +173,19 @@ Lucide Icons
 </tr>
 </table>
 
-<h3>📰 뉴스 초안 워크플로우 (News Draft Workflow)</h3>
+<h3>📰 뉴스 생성 워크플로우 (News Factory)</h3>
 <ul>
-<li><strong>AI 생성</strong>: Gemini API가 한국 경제 뉴스를 검색하고 초안을 생성하여 <code>news_drafts</code> 컬렉션에 <code>pending</code> 상태로 저장합니다.</li>
-<li><strong>관리자 검토</strong>: 웹 관리자 대시보드(<code>fine-news-admin</code>)에서 초안을 확인하고 HTML 편집기로 수정하며, 이미지를 업로드할 수 있습니다.</li>
-<li><strong>발행</strong>: 관리자가 "Publish" 버튼을 누르면 <code>state</code>가 <code>published</code>로 변경되어 모바일 앱에 노출됩니다.</li>
-<li><strong>모바일 편집</strong>: 관리자 권한이 있는 사용자는 모바일 앱에서도 뉴스 초안을 간단히 편집할 수 있습니다 (텍스트 기반).</li>
-<li><strong>자동화</strong>: Cloud Function이 매일 오전 8시(KST)에 자동으로 뉴스를 생성하며, 중복 방지를 위해 <code>source_url</code>로 검증합니다.</li>
+<li><strong>뉴스 팩토리 (News Factory)</strong>: 매시간 실행되어 최신 한국 경제 뉴스를 수집하고, Gemini API를 통해 팩트 중심의 초안을 생성합니다 (`news_drafts`).</li>
+<li><strong>브리핑 스케줄러 (Briefing Scheduler)</strong>: 6시간마다 실행되어 최근 생성된 뉴스들을 요약하여 "데일리 브리핑"을 생성합니다 (`daily_briefings`).</li>
+<li><strong>프롬프트 최적화</strong>: 최신성 유지를 위해 현재 시간(KST)을 주입하고, 에디터의 편의를 위해 `핵심 포인트(Key Data Points)`와 `발행일(Published Date)`을 추출합니다.</li>
+<li><strong>관리자 검토</strong>: 웹 관리자 대시보드(<code>fine-news-admin</code>) 또는 모바일 앱에서 초안을 검토하고 발행(`published`)합니다.</li>
 </ul>
 
-<h3>💬 커뮤니티 카테고리 경험</h3>
+<h3>💬 커뮤니티 & 다중 이미지 업로드</h3>
 <ul>
-<li>커뮤니티 탭 상단에 <strong>인기글 · 자유 · 취업 · 모집 · 스터디</strong> 칩을 고정해 원하는 주제를 즉시 필터링할 수 있습니다.</li>
-<li><code>like_count</code>가 5회를 초과한 게시글만 “인기글” 탭에 올라가며, 커뮤니티 탭에서 해당 카테고리를 고르면 좋아요 수 기준으로 재정렬됩니다.</li>
-<li>홈 탭은 이제 뉴스 컨텐츠에만 집중하며, 인기 커뮤니티 피드는 커뮤니티 화면으로 완전히 이동했습니다.</li>
+<li><strong>다중 이미지</strong>: 게시글 작성 시 최대 5장의 이미지를 선택하여 업로드할 수 있습니다. 상세 페이지에서는 가로 스크롤 갤러리로 표시됩니다.</li>
+<li><strong>카테고리 필터</strong>: 커뮤니티 탭 상단에 <strong>인기글 · 자유 · 취업 · 모집 · 스터디</strong> 칩을 통해 게시글을 필터링합니다.</li>
+<li><strong>인기글 시스템</strong>: 좋아요(`like_count`)가 5개 이상인 게시글은 자동으로 "인기글" 탭에 노출됩니다.</li>
 </ul>
 
 <h3>🎯 대외활동 · 취업 · 자격증 공고</h3>
@@ -300,6 +299,16 @@ Gemini가 생성한 뉴스 초안은 `news_drafts` 컬렉션에 저장되며, �
 모바일 앱에서 관리자는 뉴스 상세 화면에서 "Edit" 버튼을 눌러 간단한 텍스트 편집이 가능합니다.
 
 **자동 실행**: `scheduledNewsDraft` 함수가 매일 오전 8시(KST)에 자동으로 뉴스를 생성합니다.
+
+<br />
+
+🛠️ 유용한 스크립트 (Scripts)
+<ul>
+<li><code>node scripts/triggerGemini.js</code>: (관리자용) 뉴스 팩토리를 수동으로 트리거하여 즉시 뉴스를 생성합니다.</li>
+<li><code>node scripts/triggerBriefing.js</code>: (관리자용) 브리핑 스케줄러를 수동으로 트리거합니다.</li>
+<li><code>node scripts/checkData.js</code>: <code>news_drafts</code> 컬렉션의 데이터를 확인합니다.</li>
+<li><code>node scripts/seedAll.js</code>: 개발용 더미 데이터를 생성합니다.</li>
+</ul>
 
 <br />
 
