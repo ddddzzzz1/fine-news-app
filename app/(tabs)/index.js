@@ -122,8 +122,9 @@ export default function Home() {
     const showIndexBar = displayIndices.length > 0 && !keyboardVisible;
     const indexBarHeight = 76;
     const safeTabBarHeight = Number.isFinite(tabBarHeight) ? tabBarHeight : 0;
-    const baseBottomOffset = Math.max(safeTabBarHeight, bottomInset);
-    const tickerBottomOffset = safeTabBarHeight || bottomInset;
+    const tabBarVisibleHeight = Math.max(safeTabBarHeight - bottomInset, 0);
+    const baseBottomOffset = tabBarVisibleHeight + bottomInset;
+    const tickerBottomOffset = tabBarVisibleHeight;
     const scrollPaddingBottom = showIndexBar ? baseBottomOffset + indexBarHeight + 32 : baseBottomOffset + 32;
     const fabBottom = showIndexBar ? baseBottomOffset + indexBarHeight + 24 : baseBottomOffset + 24;
 
