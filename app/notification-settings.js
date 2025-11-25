@@ -97,7 +97,13 @@ export default function NotificationSettings() {
             <StyledView className="flex-row items-center justify-between px-4 py-4 bg-white border-b border-gray-100">
                 <StyledTouchableOpacity
                     className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center"
-                    onPress={() => router.back()}
+                    onPress={() => {
+                        if (router.canGoBack()) {
+                            router.back();
+                        } else {
+                            router.replace("/(tabs)/profile");
+                        }
+                    }}
                 >
                     <ChevronLeft size={18} color="#111827" />
                 </StyledTouchableOpacity>

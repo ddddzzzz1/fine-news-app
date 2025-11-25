@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity } from 'react-native';
+import React, { useMemo, useState, useCallback } from 'react';
+import { View, Text, ScrollView, Image, TouchableOpacity, Share, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -72,6 +72,36 @@ export default function NewsDetail() {
         [news?.created_date, news?.published_date]
     );
 
+    const handleShare = useCallback(async () => {
+        if (!news) return;
+        const shareUrl =
+            news.share_url ||
+            news.url ||
+            news.sourceUrl ||
+            news.source_url ||
+            news.link ||
+            (typeof id === 'string' ? `https://fine-news.app/news/${id}` : '');
+        const shareMessageParts = [
+            news.title,
+            news.summary || news.subtitle,
+            shareUrl
+        ].filter(Boolean);
+        const sharePayload = shareMessageParts.join('\n\n');
+
+        try {
+            await Share.share({
+                title: news.title || 'FINE 뉴스 공유',
+                message: sharePayload.length ? sharePayload : news.title || 'FINE에서 공유하기',
+                url: shareUrl || undefined
+            });
+        } catch (error) {
+            if (error?.message !== 'User did not share') {
+                console.log('Share error', error);
+                Alert.alert('공유 실패', '다시 시도하거나 네트워크 연결을 확인해 주세요.');
+            }
+        }
+    }, [id, news]);
+
     if (isLoading) {
         return (
             <StyledSafeAreaView edges={['top']} className="flex-1 bg-white">
@@ -102,7 +132,12 @@ export default function NewsDetail() {
                     <ArrowLeft size={24} color="#000" />
                 </Button>
                 <StyledText className="font-semibold text-sm">FINE NEWS</StyledText>
-                <Button variant="ghost" size="icon" className="rounded-full">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full"
+                    onPress={handleShare}
+                >
                     <Share2 size={24} color="#000" />
                 </Button>
             </StyledView>
