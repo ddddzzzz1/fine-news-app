@@ -27,7 +27,7 @@ const StyledScrollView = styled(ScrollView);
 export default function Home() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const tabBarHeight = useBottomTabBarHeight?.() ?? 0;
+    const tabBarHeight = useBottomTabBarHeight();
     const [activeTab, setActiveTab] = useState('뉴스레터');
     const [showIndexModal, setShowIndexModal] = useState(false);
     const { indices: displayIndices } = useMarketIndices();
@@ -121,8 +121,9 @@ export default function Home() {
     const bottomInset = useMemo(() => Math.max(insets.bottom, 16), [insets.bottom]);
     const showIndexBar = displayIndices.length > 0 && !keyboardVisible;
     const indexBarHeight = 76;
-    const baseBottomOffset = Math.max(tabBarHeight, bottomInset);
-    const tickerBottomOffset = tabBarHeight || bottomInset;
+    const safeTabBarHeight = Number.isFinite(tabBarHeight) ? tabBarHeight : 0;
+    const baseBottomOffset = Math.max(safeTabBarHeight, bottomInset);
+    const tickerBottomOffset = safeTabBarHeight || bottomInset;
     const scrollPaddingBottom = showIndexBar ? baseBottomOffset + indexBarHeight + 32 : baseBottomOffset + 32;
     const fabBottom = showIndexBar ? baseBottomOffset + indexBarHeight + 24 : baseBottomOffset + 24;
 
