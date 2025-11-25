@@ -67,8 +67,20 @@ service cloud.firestore {
       allow read: if true;
     }
 
+    match /daily_briefings/{docId} {
+      allow read: if true;
+    }
+
+    match /market_indices/{docId} {
+      allow read: if true;
+    }
+
+    match /system/{docId} {
+      allow read: if true;
+    }
+
     match /news_drafts/{docId} {
-      allow read: if isAdmin() || resource.data.state == "published";
+      allow read: if true; // TEMPORARY: Allow all reads for dev
       allow create, update, delete: if isAdmin();
     }
 
@@ -117,8 +129,8 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.user_id == request.auth.uid
         && request.resource.data.created_by == request.auth.token.email;
-      allow update: if postOwner() || (signedIn() && (isLikeMutation() || isCommentMutation()));
-      allow delete: if postOwner();
+      allow update: if isAdmin() || postOwner() || (signedIn() && (isLikeMutation() || isCommentMutation()));
+      allow delete: if isAdmin() || postOwner();
     }
 
     match /saved_contests/{contestId} {

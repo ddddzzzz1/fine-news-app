@@ -173,6 +173,15 @@ Lucide Icons
 </tr>
 </table>
 
+<h3>📰 뉴스 초안 워크플로우 (News Draft Workflow)</h3>
+<ul>
+<li><strong>AI 생성</strong>: Gemini API가 한국 경제 뉴스를 검색하고 초안을 생성하여 <code>news_drafts</code> 컬렉션에 <code>pending</code> 상태로 저장합니다.</li>
+<li><strong>관리자 검토</strong>: 웹 관리자 대시보드(<code>fine-news-admin</code>)에서 초안을 확인하고 HTML 편집기로 수정하며, 이미지를 업로드할 수 있습니다.</li>
+<li><strong>발행</strong>: 관리자가 "Publish" 버튼을 누르면 <code>state</code>가 <code>published</code>로 변경되어 모바일 앱에 노출됩니다.</li>
+<li><strong>모바일 편집</strong>: 관리자 권한이 있는 사용자는 모바일 앱에서도 뉴스 초안을 간단히 편집할 수 있습니다 (텍스트 기반).</li>
+<li><strong>자동화</strong>: Cloud Function이 매일 오전 8시(KST)에 자동으로 뉴스를 생성하며, 중복 방지를 위해 <code>source_url</code>로 검증합니다.</li>
+</ul>
+
 <h3>💬 커뮤니티 카테고리 경험</h3>
 <ul>
 <li>커뮤니티 탭 상단에 <strong>인기글 · 자유 · 취업 · 모집 · 스터디</strong> 칩을 고정해 원하는 주제를 즉시 필터링할 수 있습니다.</li>
@@ -256,7 +265,41 @@ cd ../fine-news-admin
 npm install && npm run dev
 
 
-admin: true 권한이 있는 계정으로 접속하여 인증 요청을 승인할 수 있습니다.
+admin: true 권한이 있는 계정으로 접속하여 인증 요청을 승인하고 뉴스 초안을 관리할 수 있습니다.
+
+뉴스 초안 워크플로우 (News Draft Workflow)
+
+**1. Google Cloud Console에서 Generative Language API 활성화**
+
+1. [Google Cloud Console](https://console.cloud.google.com)에 접속
+2. "APIs & Services" → "Library" 이동
+3. "Generative Language API" 검색
+4. "Enable" 클릭
+5. "APIs & Services" → "Credentials"에서 API 키 생성 (또는 기존 키 사용)
+
+**2. Firebase Functions에 API 키 설정**
+
+```bash
+# Functions 디렉토리에서 Gemini API 키 설정 (배포용)
+cd functions
+firebase functions:config:set gemini.api_key="YOUR_GEMINI_API_KEY"
+
+# 로컬 테스트용 .env 파일 생성
+echo "GEMINI_API_KEY=YOUR_GEMINI_API_KEY" > .env
+```
+
+**3. Functions 배포**
+
+```bash
+# fine-news-app 디렉토리에서 실행
+firebase deploy --only functions
+```
+
+Gemini가 생성한 뉴스 초안은 `news_drafts` 컬렉션에 저장되며, 관리자 대시보드에서 편집/발행할 수 있습니다.
+
+모바일 앱에서 관리자는 뉴스 상세 화면에서 "Edit" 버튼을 눌러 간단한 텍스트 편집이 가능합니다.
+
+**자동 실행**: `scheduledNewsDraft` 함수가 매일 오전 8시(KST)에 자동으로 뉴스를 생성합니다.
 
 <br />
 

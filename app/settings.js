@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { View, Text, TouchableOpacity, Alert, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { useRouter } from "expo-router";
@@ -91,15 +91,13 @@ function ThemeOptionRow({ option, selected, onSelect, disabled }) {
         <StyledTouchableOpacity
             onPress={onSelect}
             disabled={disabled}
-            className={`border rounded-2xl px-4 py-3 flex-row items-center justify-between ${
-                selected ? "border-indigo-500 bg-indigo-50" : "border-gray-200 bg-white"
-            } ${disabled ? "opacity-50" : ""}`}
+            className={`border rounded-2xl px-4 py-3 flex-row items-center justify-between ${selected ? "border-indigo-500 bg-indigo-50" : "border-gray-200 bg-white"
+                } ${disabled ? "opacity-50" : ""}`}
         >
             <StyledView className="flex-row items-center space-x-3 flex-1">
                 <StyledView
-                    className={`w-10 h-10 rounded-2xl items-center justify-center ${
-                        selected ? "bg-white" : "bg-gray-100"
-                    }`}
+                    className={`w-10 h-10 rounded-2xl items-center justify-center ${selected ? "bg-white" : "bg-gray-100"
+                        }`}
                 >
                     <Icon size={18} color={selected ? "#4338ca" : "#4b5563"} />
                 </StyledView>
@@ -236,7 +234,11 @@ export default function SettingsScreen() {
                 <View style={{ width: 40 }} />
             </StyledView>
 
-            <StyledView className="flex-1 px-4 py-4 space-y-5">
+            <ScrollView
+                className="flex-1 px-4 py-4"
+                contentContainerStyle={{ gap: 20 }}
+                showsVerticalScrollIndicator={false}
+            >
                 <StyledView className="bg-white rounded-2xl px-4 py-5 shadow-sm border border-gray-100">
                     <StyledText className="text-base font-semibold text-gray-900 mb-4">계정 & 인증</StyledText>
                     <InfoRow icon={User} label="닉네임" value={nickname || "-"} />
@@ -337,7 +339,7 @@ export default function SettingsScreen() {
                         </>
                     </Button>
                 </StyledView>
-            </StyledView>
+            </ScrollView>
         </StyledSafeAreaView>
     );
 }

@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import "./App.css";
 import { sanitizeContestFields, buildContestHtmlBlock } from "../../shared/contestRichText";
+import NewsDrafts from "./NewsDrafts";
+import NewsDraftEditor from "./NewsDraftEditor";
 
 const DEFAULT_CONTEST = {
     title: "",
@@ -19,6 +21,55 @@ const DEFAULT_CONTEST = {
 const CATEGORIES = ["대외활동", "취업", "자격증"];
 
 export default function App() {
+    const [view, setView] = useState("contest"); // contest, drafts, editor
+    const [selectedDraft, setSelectedDraft] = useState(null);
+
+    return (
+        <div className="app-shell">
+            <header className="app-header">
+                <div>
+                    <p className="eyebrow">Fine Admin Tool</p>
+                    <h1>{view === "contest" ? "Contest Rich Text Builder" : "News Management"}</h1>
+                </div>
+                <div className="header-actions">
+                    <button
+                        className={view === "contest" ? "primary" : "ghost"}
+                        onClick={() => setView("contest")}
+                    >
+                        Contest Builder
+                    </button>
+                    <button
+                        className={view.startsWith("draft") ? "primary" : "ghost"}
+                        onClick={() => setView("drafts")}
+                    >
+                        News Drafts
+                    </button>
+                </div>
+            </header>
+
+            {view === "contest" && <ContestBuilder />}
+            {view === "drafts" && (
+                <NewsDrafts
+                    onSelectDraft={(draft) => {
+                        setSelectedDraft(draft);
+                        setView("editor");
+                    }}
+                />
+            )}
+            {view === "editor" && selectedDraft && (
+                <NewsDraftEditor
+                    draft={selectedDraft}
+                    onBack={() => {
+                        setSelectedDraft(null);
+                        setView("drafts");
+                    }}
+                />
+            )}
+        </div>
+    );
+}
+
+function ContestBuilder() {
     const [contest, setContest] = useState(DEFAULT_CONTEST);
     const [copied, setCopied] = useState(false);
 
@@ -44,25 +95,15 @@ export default function App() {
     };
 
     return (
-        <div className="app-shell">
-            <header className="app-header">
-                <div>
-                    <p className="eyebrow">Fine Admin Tool</p>
-                    <h1>Contest Rich Text Builder</h1>
-                    <p className="description">
-                        HTML formatting helpers for 공모전 필드. Compose 강조/컬러/리스트 콘텐츠,
-                        확인 후 JSON을 복사해 Firestore 혹은 seed 파일에 붙여넣으세요.
-                    </p>
-                </div>
-                <div className="header-actions">
-                    <button className="ghost" type="button" onClick={handleReset}>
-                        초기화
-                    </button>
-                    <button className="primary" type="button" onClick={handleCopy}>
-                        {copied ? "복사 완료!" : "JSON 복사"}
-                    </button>
-                </div>
-            </header>
+        <>
+            <div className="header-actions" style={{ justifyContent: "flex-end", marginBottom: "1rem" }}>
+                <button className="ghost" type="button" onClick={handleReset}>
+                    초기화
+                </button>
+                <button className="primary" type="button" onClick={handleCopy}>
+                    {copied ? "복사 완료!" : "JSON 복사"}
+                </button>
+            </div>
 
             <section className="section">
                 <h2>기본 정보</h2>
@@ -143,7 +184,7 @@ export default function App() {
                 </p>
                 <pre className="json-output">{jsonExport}</pre>
             </section>
-        </div>
+        </>
     );
 }
 

@@ -60,3 +60,374 @@ Error: ENOENT: no such file or directory, scandir '/Users/woody/Documents/test/f
     at getAsset (/Users/woody/Documents/test/fine-news-app/node_modules/metro/src/Assets.js:224:18)
     at Server._processSingleAssetRequest (/Users/woody/Documents/test/fine-news-app/node_modules/metro/src/Server.js:436:20)
     at Server._processRequest (/Users/woody/Documents/test/fine-news-app/node_modules/metro/src/Server.js:535:7)
+iOS node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+ WARN  The package /Users/woody/Documents/test/fine-news-app/node_modules/algoliasearch contains an invalid package.json configuration. Consider raising this issue with the package maintainer(s).
+Reason: The resolution for "/Users/woody/Documents/test/fine-news-app/node_modules/algoliasearch/dist/lite/builds/browser.js" defined in "exports" is /Users/woody/Documents/test/fine-news-app/node_modules/algoliasearch/dist/lite/builds/browser.js.js, however this file does not exist. Falling back to file-based resolution.
+iOS Bundled 1199ms node_modules/expo-router/entry.js (4281 modules)
+ WARN  [2025-11-25T16:08:18.312Z]  @firebase/auth: Auth (12.6.0): 
+You are initializing Firebase Auth for React Native without providing
+AsyncStorage. Auth state will default to memory persistence and will not
+persist between sessions. In order to persist auth state, install the package
+"@react-native-async-storage/async-storage" and provide it to
+initializeAuth:
+
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching market indices [FirebaseError: Missing or insufficient permissions.]
+ INFO  Launching DevTools...
+ INFO  Launching DevTools...
+iOS node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 100ms node_modules/expo-router/entry.js (1 module)
+ WARN  [2025-11-25T16:09:07.204Z]  @firebase/auth: Auth (12.6.0): 
+You are initializing Firebase Auth for React Native without providing
+AsyncStorage. Auth state will default to memory persistence and will not
+persist between sessions. In order to persist auth state, install the package
+"@react-native-async-storage/async-storage" and provide it to
+initializeAuth:
+
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching market indices [FirebaseError: Missing or insufficient permissions.]
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:09:16.882Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:09:16.902Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:09:16.905Z"}
+ LOG  [Auth] email_login_attempt {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:09:17.859Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:09:17.873Z"}
+ LOG  [Auth] email_login_authenticated {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:09:18.884Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] email_login_success {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:09:18.885Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:09:18.968Z"}
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+iOS node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 98ms node_modules/expo-router/entry.js (1 module)
+ WARN  [2025-11-25T16:21:53.459Z]  @firebase/auth: Auth (12.6.0): 
+You are initializing Firebase Auth for React Native without providing
+AsyncStorage. Auth state will default to memory persistence and will not
+persist between sessions. In order to persist auth state, install the package
+"@react-native-async-storage/async-storage" and provide it to
+initializeAuth:
+
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching market indices [FirebaseError: Missing or insufficient permissions.]
+ INFO  Launching DevTools...
+ INFO  Launching DevTools...
+ INFO  Launching DevTools...
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:22:09.907Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:22:09.923Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:22:09.926Z"}
+ LOG  [Auth] email_login_attempt {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:22:10.643Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:22:10.654Z"}
+ LOG  [Auth] email_login_authenticated {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:22:11.775Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] email_login_success {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:22:11.775Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:22:11.849Z"}
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+ INFO  Launching DevTools...
+iOS Bundled 84ms node_modules/expo-router/entry.js (1 module)
+ WARN  [2025-11-25T16:23:12.647Z]  @firebase/auth: Auth (12.6.0): 
+You are initializing Firebase Auth for React Native without providing
+AsyncStorage. Auth state will default to memory persistence and will not
+persist between sessions. In order to persist auth state, install the package
+"@react-native-async-storage/async-storage" and provide it to
+initializeAuth:
+
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
+ LOG  Error fetching market indices [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:25:11.652Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:25:11.664Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:25:11.667Z"}
+ LOG  [Auth] email_login_attempt {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:25:12.958Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:25:12.972Z"}
+ LOG  [Auth] email_login_authenticated {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:25:13.847Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] email_login_success {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:25:13.847Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:25:13.910Z"}
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Failed to delete post [FirebaseError: Missing or insufficient permissions.]
+iOS node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 110ms node_modules/expo-router/entry.js (1 module)
+ WARN  [2025-11-25T16:27:38.816Z]  @firebase/auth: Auth (12.6.0): 
+You are initializing Firebase Auth for React Native without providing
+AsyncStorage. Auth state will default to memory persistence and will not
+persist between sessions. In order to persist auth state, install the package
+"@react-native-async-storage/async-storage" and provide it to
+initializeAuth:
+
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
+ LOG  Error fetching market indices [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ INFO  Launching DevTools...
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:28:57.183Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:28:57.206Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:28:57.209Z"}
+ LOG  [Auth] email_login_attempt {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:28:58.225Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:28:58.240Z"}
+ LOG  [Auth] email_login_authenticated {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:28:59.048Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] email_login_success {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:28:59.049Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:28:59.130Z"}
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  [Auth] nickname_update_success {"nickname": "파인러버", "timestamp": "2025-11-25T16:29:33.570Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+iOS node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 100ms node_modules/expo-router/entry.js (1 module)
+ WARN  [2025-11-25T16:32:01.005Z]  @firebase/auth: Auth (12.6.0): 
+You are initializing Firebase Auth for React Native without providing
+AsyncStorage. Auth state will default to memory persistence and will not
+persist between sessions. In order to persist auth state, install the package
+"@react-native-async-storage/async-storage" and provide it to
+initializeAuth:
+
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
+ LOG  Error fetching market indices [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ INFO  Launching DevTools...
+ INFO  Launching DevTools...
+ INFO  Launching DevTools...
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:32:19.058Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:32:19.077Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:32:19.081Z"}
+ LOG  [Auth] email_login_attempt {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:32:19.795Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:32:19.808Z"}
+ LOG  [Auth] email_login_authenticated {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:32:20.746Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] email_login_success {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:32:20.747Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:32:20.827Z"}
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+ INFO  Launching DevTools...
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+iOS node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 106ms node_modules/expo-router/entry.js (1 module)
+ WARN  [2025-11-25T16:35:19.639Z]  @firebase/auth: Auth (12.6.0): 
+You are initializing Firebase Auth for React Native without providing
+AsyncStorage. Auth state will default to memory persistence and will not
+persist between sessions. In order to persist auth state, install the package
+"@react-native-async-storage/async-storage" and provide it to
+initializeAuth:
+
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching market indices [FirebaseError: Missing or insufficient permissions.]
+ INFO  Launching DevTools...
+ INFO  Launching DevTools...
+ INFO  Launching DevTools...
+ INFO  Launching DevTools...
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:35:31.434Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:35:31.450Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:35:31.456Z"}
+ LOG  [Auth] email_login_attempt {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:35:32.471Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:35:32.483Z"}
+ LOG  [Auth] email_login_authenticated {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:35:33.362Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] email_login_success {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:35:33.362Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:35:33.400Z"}
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+ LOG  Failed to toggle like [FirebaseError: Missing or insufficient permissions.]
+ LOG  Failed to toggle like [FirebaseError: Missing or insufficient permissions.]
+ LOG  Failed to delete post [FirebaseError: Missing or insufficient permissions.]
+ LOG  Failed to delete comment [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching briefing [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Failed to delete comment [FirebaseError: Missing or insufficient permissions.]
+iOS node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 93ms node_modules/expo-router/entry.js (1 module)
+ WARN  [2025-11-25T16:43:56.194Z]  @firebase/auth: Auth (12.6.0): 
+You are initializing Firebase Auth for React Native without providing
+AsyncStorage. Auth state will default to memory persistence and will not
+persist between sessions. In order to persist auth state, install the package
+"@react-native-async-storage/async-storage" and provide it to
+initializeAuth:
+
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
+ LOG  Error fetching briefing [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching market indices [FirebaseError: Missing or insufficient permissions.]
+ INFO  Launching DevTools...
+ INFO  Launching DevTools...
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+ WARN  Failed to open debugger. Please check that the dev server is running and reload the app.
+ ERROR  [FirebaseError: Firebase: Error (auth/already-initialized).] 
+
+Code: firebaseConfig.js
+[0m [90m 19 |[39m [36mconst[39m app [33m=[39m initializeApp(firebaseConfig)[33m;[39m
+ [90m 20 |[39m [36mexport[39m [36mconst[39m db [33m=[39m getFirestore(app)[33m;[39m
+[31m[1m>[22m[39m[90m 21 |[39m [36mexport[39m [36mconst[39m auth [33m=[39m initializeAuth(app[33m,[39m {
+ [90m    |[39m                                   [31m[1m^[22m[39m
+ [90m 22 |[39m   persistence[33m:[39m getReactNativePersistence([33mReactNativeAsyncStorage[39m)
+ [90m 23 |[39m })[33m;[39m
+ [90m 24 |[39m [36mexport[39m [36mconst[39m storage [33m=[39m getStorage(app)[33m;[39m[0m
+Call Stack
+  <global> (firebaseConfig.js:21:35)
+iOS node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 85ms node_modules/expo-router/entry.js (1 module)
+ LOG  Error fetching market indices [FirebaseError: Missing or insufficient permissions.]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:46:23.143Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:46:23.161Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:46:23.165Z"}
+ LOG  [Auth] email_login_attempt {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:46:24.308Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:46:24.321Z"}
+ LOG  [Auth] email_login_authenticated {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:46:25.416Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] email_login_success {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:46:25.416Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:46:25.503Z"}
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  Failed to delete comment [FirebaseError: Missing or insufficient permissions.]
+iOS node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 86ms node_modules/expo-router/entry.js (1 module)
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  Error fetching market indices [FirebaseError: Missing or insufficient permissions.]
+iOS node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 129ms node_modules/expo-router/entry.js (1 module)
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  Error fetching market indices [FirebaseError: Missing or insufficient permissions.]
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:52:18.339Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:52:18.363Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:52:18.366Z"}
+ LOG  [Auth] email_login_attempt {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:52:19.600Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:52:19.610Z"}
+ LOG  [Auth] email_login_authenticated {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:52:20.497Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] email_login_success {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T16:52:20.498Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T16:52:20.508Z"}
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+iOS node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 290ms node_modules/expo-router/entry.js (1 module)
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:21:59.006Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:21:59.037Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:21:59.042Z"}
+ LOG  [Auth] email_login_attempt {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T17:22:00.186Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:22:00.195Z"}
+ LOG  [Auth] email_login_authenticated {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T17:22:01.004Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] email_login_success {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T17:22:01.005Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:22:01.018Z"}
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+iOS node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 100ms node_modules/expo-router/entry.js (1 module)
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaEgoOcHVibGlzaGVkX2RhdGUQAhoMCghfX25hbWVfXxAC]
+ INFO  Launching DevTools...
+iOS node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 81ms node_modules/expo-router/entry.js (1 module)
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:29:51.100Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:29:51.128Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:29:51.133Z"}
+ LOG  [Auth] email_login_attempt {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T17:29:52.421Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:29:52.434Z"}
+ LOG  [Auth] email_login_authenticated {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T17:29:53.274Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] email_login_success {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T17:29:53.274Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:29:53.291Z"}
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:29:56.510Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:29:56.526Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:29:56.530Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:30:09.177Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:30:09.518Z"}
+ LOG  [Auth] google_login_failed {"code": "auth/invalid-credential", "message": "Firebase: Invalid Idp Response: the Google id_token is not allowed to be used with this application. Its audience (OAuth 2.0 client ID) is 914895898330-hc5jp1ehmt6bgrlqvcv8pv4i0n57r942.apps.googleusercontent.com, which is not authorized to be used in the project with project_number: 469883809874. (auth/invalid-credential).", "timestamp": "2025-11-25T17:30:09.818Z"}
+ LOG  [Auth] email_login_attempt {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T17:30:17.602Z"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:30:17.611Z"}
+ LOG  [Auth] email_login_authenticated {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T17:30:18.223Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] email_login_success {"email": "fine3410@gmail.com", "timestamp": "2025-11-25T17:30:18.223Z", "uid": "f2LzWGUuZsMdUpzh8hnXAJqRPfQ2"}
+ LOG  [Auth] google_login_redirect_info {"appOwnership": null, "redirectUri": "(native default)", "timestamp": "2025-11-25T17:30:18.236Z"}
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ INFO  Launching DevTools...
+iOS node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 81ms node_modules/expo-router/entry.js (1 module)
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+iOS node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 86ms node_modules/expo-router/entry.js (1 module)
+iOS Bundled 77ms node_modules/expo-router/entry.js (1 module)
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]
+ LOG  Error fetching news [FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/test-fine-45ecf/firestore/indexes?create_composite=ClNwcm9qZWN0cy90ZXN0LWZpbmUtNDVlY2YvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL25ld3NfZHJhZnRzL2luZGV4ZXMvXxABGgkKBXN0YXRlEAEaDgoKY3JlYXRlZF9hdBACGgwKCF9fbmFtZV9fEAI]

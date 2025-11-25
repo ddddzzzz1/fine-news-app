@@ -33,7 +33,7 @@ export default function WritePost() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const boardTypes = ["자유", "취업", "모집", "스터디"];
     const [boardType, setBoardType] = useState(boardTypes[0]);
-    const [selectedImage, setSelectedImage] = useState(null);
+    const [selectedImages, setSelectedImages] = useState([]);
     const [imageUploadProgress, setImageUploadProgress] = useState(0);
     const [isProcessingImage, setIsProcessingImage] = useState(false);
 
@@ -52,38 +52,41 @@ export default function WritePost() {
             }
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: "images",
-                allowsEditing: true,
-                quality: 1,
+                allowsEditing: false, // Multi-selection doesn't support editing usually
+                allowsMultipleSelection: true,
+                selectionLimit: 5, // Limit to 5 images
+                quality: 0.8,
             });
             if (result.canceled || !result.assets?.length) {
                 return;
             }
 
-            const asset = result.assets[0];
-            const resized = await ImageManipulator.manipulateAsync(
-                asset.uri,
-                [{ resize: { width: Math.min(MAX_IMAGE_WIDTH, asset.width || MAX_IMAGE_WIDTH) } }],
-                { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
-            );
+            const newImages = [];
+            for (const asset of result.assets) {
+                // Resize if needed (optional, but good for performance)
+                const resized = await ImageManipulator.manipulateAsync(
+                    asset.uri,
+                    [{ resize: { width: Math.min(MAX_IMAGE_WIDTH, asset.width || MAX_IMAGE_WIDTH) } }],
+                    { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+                );
 
-            const fileInfo = await FileSystem.getInfoAsync(resized.uri);
-            if (!fileInfo.exists) {
-                Alert.alert("이미지 오류", "선택한 이미지를 찾을 수 없습니다. 다시 시도해주세요.");
-                return;
-            }
-            if (fileInfo.size > MAX_IMAGE_SIZE_BYTES) {
-                Alert.alert("용량 초과", "이미지 크기가 2MB를 초과합니다. 다른 이미지를 선택해주세요.");
-                return;
+                const fileInfo = await FileSystem.getInfoAsync(resized.uri);
+                if (fileInfo.exists && fileInfo.size <= MAX_IMAGE_SIZE_BYTES) {
+                    newImages.push({
+                        uri: resized.uri,
+                        width: resized.width,
+                        height: resized.height,
+                        size: fileInfo.size,
+                        mimeType: "image/jpeg",
+                        originalName: asset.fileName || `image_${Date.now()}.jpg`,
+                    });
+                }
             }
 
-            setSelectedImage({
-                uri: resized.uri,
-                width: resized.width,
-                height: resized.height,
-                size: fileInfo.size,
-                mimeType: "image/jpeg",
-                originalName: asset.fileName || "community.jpg",
-            });
+            if (newImages.length > 0) {
+                setSelectedImages(prev => [...prev, ...newImages].slice(0, 5)); // Max 5 total
+            }
+
         } catch (error) {
             console.log("Image pick failed", error);
             Alert.alert("이미지 선택 실패", "이미지를 불러오지 못했습니다. 다시 시도해주세요.");
@@ -92,9 +95,8 @@ export default function WritePost() {
         }
     };
 
-    const handleRemoveImage = () => {
-        setSelectedImage(null);
-        setImageUploadProgress(0);
+    const handleRemoveImage = (index) => {
+        setSelectedImages(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleSubmit = async () => {
@@ -112,42 +114,43 @@ export default function WritePost() {
         if (isSubmitting) return;
         setIsSubmitting(true);
         setImageUploadProgress(0);
+
         try {
-            let uploadedImageData = null;
-            if (selectedImage) {
-                const fileResponse = await fetch(selectedImage.uri);
-                const blob = await fileResponse.blob();
-                const storagePath = `community_posts/${userId || "anonymous"}/${Date.now()}.jpg`;
-                const storageRef = ref(storage, storagePath);
-                await new Promise((resolve, reject) => {
-                    const uploadTask = uploadBytesResumable(storageRef, blob, {
-                        contentType: selectedImage.mimeType || "image/jpeg",
+            const uploadedImages = [];
+
+            if (selectedImages.length > 0) {
+                const totalImages = selectedImages.length;
+                let completed = 0;
+
+                // Upload images in parallel
+                await Promise.all(selectedImages.map(async (img, index) => {
+                    const fileResponse = await fetch(img.uri);
+                    const blob = await fileResponse.blob();
+                    const storagePath = `community_posts/${userId || "anonymous"}/${Date.now()}_${index}.jpg`;
+                    const storageRef = ref(storage, storagePath);
+
+                    await uploadBytesResumable(storageRef, blob, {
+                        contentType: img.mimeType || "image/jpeg",
                     });
-                    uploadTask.on(
-                        "state_changed",
-                        (snapshot) => {
-                            const progress = snapshot.bytesTransferred / snapshot.totalBytes;
-                            setImageUploadProgress(progress);
-                        },
-                        (error) => reject(error),
-                        async () => {
-                            const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
-                            uploadedImageData = {
-                                image_url: downloadUrl,
-                                image_meta: {
-                                    width: selectedImage.width,
-                                    height: selectedImage.height,
-                                    size: selectedImage.size,
-                                    storage_path: storagePath,
-                                },
-                            };
-                            resolve();
+
+                    const downloadUrl = await getDownloadURL(storageRef);
+                    uploadedImages.push({
+                        url: downloadUrl,
+                        meta: {
+                            width: img.width,
+                            height: img.height,
+                            size: img.size,
+                            storage_path: storagePath,
                         }
-                    );
-                });
+                    });
+
+                    completed++;
+                    setImageUploadProgress(completed / totalImages);
+                }));
             }
 
-            await addDoc(collection(db, "community_posts"), {
+            // Prepare post data
+            const postData = {
                 title: title.trim(),
                 content: content.trim(),
                 board_type: boardType,
@@ -159,8 +162,16 @@ export default function WritePost() {
                 like_count: 0,
                 comments: [],
                 comment_count: 0,
-                ...(uploadedImageData || {}),
-            });
+                images: uploadedImages, // New array field
+            };
+
+            // Backward compatibility: Set image_url to the first image
+            if (uploadedImages.length > 0) {
+                postData.image_url = uploadedImages[0].url;
+                postData.image_meta = uploadedImages[0].meta;
+            }
+
+            await addDoc(collection(db, "community_posts"), postData);
 
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: ["tab-community-posts"] }),
@@ -202,9 +213,8 @@ export default function WritePost() {
                             <StyledTouchableOpacity
                                 key={type}
                                 onPress={() => setBoardType(type)}
-                                className={`px-3 py-1.5 rounded-full border ${
-                                    boardType === type ? "bg-indigo-600 border-indigo-600" : "border-gray-200"
-                                }`}
+                                className={`px-3 py-1.5 rounded-full border ${boardType === type ? "bg-indigo-600 border-indigo-600" : "border-gray-200"
+                                    }`}
                             >
                                 <StyledText className={boardType === type ? "text-white text-sm" : "text-gray-700 text-sm"}>
                                     {type}
@@ -237,51 +247,43 @@ export default function WritePost() {
                 </StyledView>
 
                 <StyledView className="mt-4">
-                    <StyledText className="text-sm font-medium text-gray-700 mb-2">이미지 첨부 (선택)</StyledText>
-                    <StyledView className="space-y-3">
-                        <StyledTouchableOpacity
-                            onPress={handlePickImage}
-                            disabled={isProcessingImage}
-                            className={`border border-dashed rounded-2xl px-4 py-6 items-center justify-center ${
-                                selectedImage ? "border-indigo-200 bg-indigo-50" : "border-gray-300 bg-gray-50"
-                            }`}
-                        >
-                            {selectedImage ? (
-                                <StyledView className="w-full">
-                                    <StyledImage
-                                        source={{ uri: selectedImage.uri }}
-                                        className="w-full rounded-xl mb-3"
-                                        style={{
-                                            aspectRatio:
-                                                selectedImage.width && selectedImage.height
-                                                    ? selectedImage.width / selectedImage.height
-                                                    : 4 / 3,
-                                        }}
-                                        resizeMode="cover"
-                                    />
-                                    <StyledText className="text-xs text-gray-600">
-                                        {(selectedImage.size / 1024).toFixed(0)}KB · {selectedImage.width}x{selectedImage.height}
-                                    </StyledText>
-                                </StyledView>
-                            ) : (
-                                <StyledText className="text-sm text-gray-600">
-                                    {isProcessingImage ? "이미지를 준비중입니다..." : "갤러리에서 이미지를 선택하세요"}
-                                </StyledText>
-                            )}
-                        </StyledTouchableOpacity>
-                        {selectedImage && (
-                            <StyledView className="flex-row items-center justify-between">
-                                <Button variant="ghost" onPress={handleRemoveImage}>
-                                    이미지 제거
-                                </Button>
-                                {imageUploadProgress > 0 && imageUploadProgress < 1 && (
-                                    <StyledText className="text-xs text-gray-500">
-                                        업로드 준비 중... {(imageUploadProgress * 100).toFixed(0)}%
-                                    </StyledText>
-                                )}
-                            </StyledView>
+                    <StyledView className="flex-row justify-between items-center mb-2">
+                        <StyledText className="text-sm font-medium text-gray-700">이미지 첨부 ({selectedImages.length}/5)</StyledText>
+                        {imageUploadProgress > 0 && imageUploadProgress < 1 && (
+                            <StyledText className="text-xs text-indigo-600">
+                                업로드 중... {(imageUploadProgress * 100).toFixed(0)}%
+                            </StyledText>
                         )}
                     </StyledView>
+
+                    <View className="flex-row">
+                        <StyledTouchableOpacity
+                            onPress={handlePickImage}
+                            disabled={isProcessingImage || selectedImages.length >= 5}
+                            className={`w-20 h-20 border border-dashed rounded-xl items-center justify-center mr-3 ${selectedImages.length >= 5 ? "bg-gray-100 border-gray-200" : "bg-gray-50 border-gray-300"
+                                }`}
+                        >
+                            <StyledText className="text-2xl text-gray-400">+</StyledText>
+                        </StyledTouchableOpacity>
+
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            {selectedImages.map((img, index) => (
+                                <StyledView key={index} className="w-20 h-20 mr-3 relative">
+                                    <StyledImage
+                                        source={{ uri: img.uri }}
+                                        className="w-full h-full rounded-xl"
+                                        resizeMode="cover"
+                                    />
+                                    <StyledTouchableOpacity
+                                        onPress={() => handleRemoveImage(index)}
+                                        className="absolute -top-2 -right-2 bg-gray-900 rounded-full w-5 h-5 items-center justify-center"
+                                    >
+                                        <StyledText className="text-white text-xs font-bold">X</StyledText>
+                                    </StyledTouchableOpacity>
+                                </StyledView>
+                            ))}
+                        </ScrollView>
+                    </View>
                 </StyledView>
             </StyledView>
 

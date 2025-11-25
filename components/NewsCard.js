@@ -1,14 +1,14 @@
 import React from "react";
 import { Link } from "expo-router";
-import { View, Text, Image, Pressable } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { Card } from "./ui/card";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { styled } from "nativewind";
+import { TrendingUp, Tag } from "lucide-react-native";
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
-const StyledImage = styled(Image);
 
 const toDate = (value) => {
     if (!value) return null;
@@ -24,31 +24,59 @@ const toDate = (value) => {
 
 export default function NewsCard({ news }) {
     const displayDate = toDate(news.published_date) || toDate(news.created_date);
+    const tags = Array.isArray(news.tags) ? news.tags.slice(0, 3) : [];
 
     return (
         <Link href={`/news/${news.id}`} asChild>
             <Pressable>
-                <Card className="overflow-hidden border-0 shadow-sm mb-3">
-                    {news.image_url && (
-                        <StyledView className="aspect-video w-full bg-gray-100 overflow-hidden">
-                            <StyledImage
-                                source={{ uri: news.image_url }}
-                                className="w-full h-full"
-                                resizeMode="cover"
-                            />
-                        </StyledView>
-                    )}
-                    <StyledView className="p-4">
-                        <StyledText className="font-bold text-base text-gray-900 mb-2" numberOfLines={2}>
-                            {news.title}
-                        </StyledText>
-                        <StyledView className="flex-row items-center justify-between">
-                            <StyledText className="text-xs text-gray-500">{news.source || '파이낸셜뉴스'}</StyledText>
-                            <StyledText className="text-xs text-gray-500">
-                                {displayDate ? format(displayDate, "MM월 dd일", { locale: ko }) : "날짜 미정"}
+                <Card className="border border-gray-100 shadow-sm mb-3 bg-white rounded-xl p-5">
+                    {/* Header: State & Date */}
+                    <StyledView className="flex-row items-center justify-between mb-3">
+                        <StyledView className="flex-row items-center space-x-2">
+                            {news.state === 'pending' && (
+                                <StyledView className="bg-yellow-100 px-2 py-0.5 rounded mr-2">
+                                    <StyledText className="text-xs font-bold text-yellow-800">검토 중</StyledText>
+                                </StyledView>
+                            )}
+                            <StyledText className="text-xs text-gray-400 font-medium">
+                                {displayDate ? format(displayDate, "M월 d일 HH:mm", { locale: ko }) : "날짜 미정"}
                             </StyledText>
                         </StyledView>
                     </StyledView>
+
+                    {/* Title */}
+                    <StyledText className="font-bold text-lg text-gray-900 mb-3 leading-7" numberOfLines={2}>
+                        {news.title}
+                    </StyledText>
+
+                    {/* Summary (Optional) */}
+                    {news.summary && (
+                        <StyledText className="text-sm text-gray-600 mb-4 leading-5" numberOfLines={2}>
+                            {news.summary}
+                        </StyledText>
+                    )}
+
+                    {/* Key Data Points (New Feature) */}
+                    {news.key_data_points && (
+                        <StyledView className="bg-indigo-50 rounded-lg p-3 mb-4 flex-row items-start">
+                            <TrendingUp size={16} color="#4f46e5" style={{ marginTop: 2, marginRight: 8 }} />
+                            <StyledText className="text-sm text-indigo-900 font-medium flex-1">
+                                {news.key_data_points}
+                            </StyledText>
+                        </StyledView>
+                    )}
+
+                    {/* Footer: Tags */}
+                    {tags.length > 0 && (
+                        <StyledView className="flex-row flex-wrap gap-2 mt-1">
+                            {tags.map((tag, index) => (
+                                <StyledView key={index} className="bg-gray-100 px-2.5 py-1 rounded-md flex-row items-center">
+                                    <Tag size={10} color="#6b7280" style={{ marginRight: 4 }} />
+                                    <StyledText className="text-xs text-gray-600">{tag}</StyledText>
+                                </StyledView>
+                            ))}
+                        </StyledView>
+                    )}
                 </Card>
             </Pressable>
         </Link>

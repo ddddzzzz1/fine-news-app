@@ -4,8 +4,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useQuery } from '@tanstack/react-query';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
-import { db } from '../../firebaseConfig';
+import { collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore';
+import { db, auth } from '../../firebaseConfig';
 import { Button } from '../../components/ui/button';
 import { Search, Bell } from 'lucide-react-native';
 import NewsCard from '../../components/NewsCard';
@@ -71,13 +71,74 @@ export default function Home() {
         );
     }, [isRegisteringPush, permissionStatus, pushSupported, registerForPushNotifications]);
 
-    const { data: newsList, isLoading: newsLoading } = useQuery({
-        queryKey: ['news'],
+    const [isAdmin, setIsAdmin] = useState(false);
+    const { user } = usePushNotificationsContext(); // Assuming user is available here, or use auth
+
+    useEffect(() => {
+        const checkAdmin = async () => {
+            if (auth.currentUser) {
+                try {
+                    const tokenResult = await auth.currentUser.getIdTokenResult();
+                    setIsAdmin(!!tokenResult.claims.admin);
+                } catch (e) {
+                    console.log("Error checking admin status", e);
+                }
+            } else {
+                setIsAdmin(false);
+            }
+        };
+        checkAdmin();
+    }, [auth.currentUser]); // Depend on auth.currentUser
+
+    const { data: newsList, isLoading: newsLoading, refetch: refetchNews } = useQuery({
+        queryKey: ['news', isAdmin], // Add isAdmin to queryKey to trigger refetch
         queryFn: async () => {
             try {
-                const q = query(collection(db, 'news'), orderBy('published_date', 'desc'), limit(50));
-                const querySnapshot = await getDocs(q);
-                return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                let results = [];
+                if (isAdmin) {
+                    // Fetch separately to avoid composite index requirement
+                    const pendingQ = query(
+                        collection(db, 'news_drafts'),
+                        where('state', '==', 'pending'),
+                        orderBy('created_at', 'desc'),
+                        limit(20)
+                    );
+
+                    const publishedQ = query(
+                        collection(db, 'news_drafts'),
+                        where('state', '==', 'published'),
+                        orderBy('published_date', 'desc'),
+                        limit(50)
+                    );
+
+                    const [pendingSnap, publishedSnap] = await Promise.all([
+                        getDocs(pendingQ),
+                        getDocs(publishedQ)
+                    ]);
+
+                    const pendingDocs = pendingSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    const publishedDocs = publishedSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                    // Merge and sort by created_at (or published_date for published ones if preferred)
+                    // Here we simply put pending on top or mix them by date
+                    results = [...pendingDocs, ...publishedDocs].sort((a, b) => {
+                        const dateA = a.created_at?.seconds || 0;
+                        const dateB = b.created_at?.seconds || 0;
+                        return dateB - dateA;
+                    });
+                } else {
+                    // Users only see published
+                    // TEMPORARY: Fetching pending as well for dev visibility
+                    const q = query(
+                        collection(db, 'news_drafts'),
+                        // where('state', '==', 'published'), // Commented out for dev
+                        orderBy('created_at', 'desc'),
+                        limit(50)
+                    );
+                    const querySnapshot = await getDocs(q);
+                    results = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                }
+                return results;
             } catch (e) {
                 console.log("Error fetching news", e);
                 return [];
@@ -85,6 +146,11 @@ export default function Home() {
         },
         initialData: []
     });
+
+    // Refetch when user logs in/out or admin status changes
+    useEffect(() => {
+        refetchNews();
+    }, [isAdmin, refetchNews]);
 
     useEffect(() => {
         if (!selectedIndexId && displayIndices.length) {
@@ -105,6 +171,23 @@ export default function Home() {
     const baseBottomOffset = tabBarVisibleHeight + bottomInset;
     const tickerBottomOffset = safeTabBarHeight;
     const scrollPaddingBottom = showIndexBar ? baseBottomOffset + indexBarHeight + 32 : baseBottomOffset + 32;
+
+    const { data: dailyBriefing } = useQuery({
+        queryKey: ['dailyBriefing'],
+        queryFn: async () => {
+            try {
+                const q = query(collection(db, 'daily_briefings'), orderBy('created_at', 'desc'), limit(1));
+                const snapshot = await getDocs(q);
+                if (!snapshot.empty) {
+                    return snapshot.docs[0].data().content;
+                }
+                return null;
+            } catch (e) {
+                console.log("Error fetching briefing", e);
+                return null;
+            }
+        }
+    });
 
     return (
         <StyledSafeAreaView edges={['top']} className="flex-1 bg-white">
@@ -142,35 +225,40 @@ export default function Home() {
 
             <StyledScrollView className="flex-1" contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}>
                 {/* Today's News Summary */}
-                <StyledView className="px-4 py-6 bg-indigo-50 border-b border-gray-100">
-                    <StyledText className="text-lg font-bold text-gray-900 mb-2">오늘의 뉴스 요약</StyledText>
-                    <StyledText className="text-sm text-gray-700 leading-6">
-                        오늘 시장에서는 올림픽 같은 대형 이벤트의 성장 효과부터 빅테크의 유럽 독점 우려까지
-                        관심이 높아지고 있어요! 뉴욕증시 하락에도 커지고 있고요!
-                    </StyledText>
-                    <StyledText className="text-xs text-indigo-600 mt-3 font-semibold">
-                        아래로 기술주 중심 변동성도 커지고 있고고!
-                    </StyledText>
-                </StyledView>
+                {dailyBriefing && (
+                    <StyledView className="px-4 py-6 bg-indigo-50 border-b border-gray-100">
+                        <StyledText className="text-lg font-bold text-gray-900 mb-2">오늘의 뉴스 요약</StyledText>
+                        <StyledText className="text-sm text-gray-700 leading-6">
+                            {dailyBriefing}
+                        </StyledText>
+                        <StyledText className="text-xs text-indigo-600 mt-3 font-semibold">
+                            AI가 정리한 최신 경제 브리핑입니다.
+                        </StyledText>
+                    </StyledView>
+                )}
 
                 {/* Related News */}
                 <StyledView className="px-4 py-4">
-                    <StyledText className="text-base font-bold text-gray-900 mb-4">관련 뉴스</StyledText>
-                    <StyledView className="flex-row flex-wrap justify-between">
+                    <StyledText className="text-xl font-bold text-gray-900 mb-4">최신 경제 인사이트</StyledText>
+                    <StyledView className="space-y-2">
                         {newsLoading ? (
                             Array(4).fill(0).map((_, i) => (
-                                <StyledView key={i} className="w-[48%] mb-4 space-y-2">
-                                    <Skeleton className="aspect-video w-full rounded-lg" />
-                                    <Skeleton className="h-4 w-full" />
-                                    <Skeleton className="h-3 w-20" />
+                                <StyledView key={i} className="mb-4 space-y-2">
+                                    <Skeleton className="h-32 w-full rounded-xl" />
+                                    <Skeleton className="h-4 w-3/4" />
+                                    <Skeleton className="h-3 w-1/2" />
                                 </StyledView>
                             ))
-                        ) : (
-                            newsList.slice(0, 4).map((news) => (
-                                <StyledView key={news.id} className="w-[48%]">
+                        ) : newsList.length > 0 ? (
+                            newsList.slice(0, 10).map((news) => (
+                                <StyledView key={news.id} className="w-full">
                                     <NewsCard news={news} />
                                 </StyledView>
                             ))
+                        ) : (
+                            <StyledView className="py-10 items-center justify-center">
+                                <StyledText className="text-gray-500">등록된 뉴스가 없습니다.</StyledText>
+                            </StyledView>
                         )}
                     </StyledView>
                 </StyledView>

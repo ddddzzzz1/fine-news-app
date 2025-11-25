@@ -31,6 +31,56 @@ const newsArticles = [
     },
 ];
 
+const newsDrafts = [
+    {
+        title: "한국 경제의 미래 (Draft)",
+        summary: "AI와 반도체 산업을 중심으로 한 2025년 경제 전망 초안입니다.",
+        content_html: "<p>한국 경제가 <strong>AI</strong>와 <strong>반도체</strong>를 중심으로 재편되고 있습니다.</p><p>정부의 지원 정책과 기업들의 투자가 맞물려...</p>",
+        content_text: "한국 경제가 AI와 반도체를 중심으로 재편되고 있습니다.\n\n정부의 지원 정책과 기업들의 투자가 맞물려...",
+        image_url: "",
+        tags: ["경제", "AI"],
+        source: "Fine News",
+        source_url: "https://example.com/news/1",
+        state: "pending",
+        created_at: now,
+        created_by: "gemini@functions",
+        gemini_prompt: "한국 경제 뉴스 검색...",
+        gemini_response: { some: "data" },
+    },
+    {
+        title: "부동산 시장 동향 (Published Draft)",
+        summary: "최근 부동산 시장의 변화와 전망을 분석합니다.",
+        content_html: "<p>부동산 시장이 안정세에 접어들고 있습니다.</p>",
+        content_text: "부동산 시장이 안정세에 접어들고 있습니다.",
+        image_url: "",
+        tags: ["부동산"],
+        source: "Fine News",
+        source_url: "https://example.com/news/2",
+        state: "published",
+        created_at: now,
+        created_by: "admin@fine.com",
+        reviewed_at: now,
+        reviewed_by: "admin@fine.com",
+        published_date: now,
+    },
+    {
+        title: "가상화폐 규제 (Rejected Draft)",
+        summary: "가상화폐 규제 관련 뉴스 초안입니다.",
+        content_html: "<p>가상화폐 규제가 강화될 예정입니다.</p>",
+        content_text: "가상화폐 규제가 강화될 예정입니다.",
+        image_url: "",
+        tags: ["가상화폐"],
+        source: "Fine News",
+        source_url: "https://example.com/news/3",
+        state: "rejected",
+        created_at: now,
+        created_by: "gemini@functions",
+        reviewed_at: now,
+        reviewed_by: "admin@fine.com",
+        review_notes: "중복된 내용입니다.",
+    },
+];
+
 const calendarEvents = [
     {
         title: "AI 해커톤 준비 모임",
@@ -136,6 +186,13 @@ async function seedNews() {
     console.log("Seeded news articles.");
 }
 
+async function seedNewsDrafts() {
+    await Promise.all(
+        newsDrafts.map((draft) => db.collection("news_drafts").add(draft))
+    );
+    console.log("Seeded news drafts.");
+}
+
 async function seedCalendar() {
     await Promise.all(
         calendarEvents.map((event) => db.collection("calendar_events").add(event))
@@ -194,6 +251,7 @@ async function seedUserProfiles() {
 
 async function run() {
     await seedNews();
+    await seedNewsDrafts();
     await seedCalendar();
     await seedSavedContests();
     await seedCommunity();

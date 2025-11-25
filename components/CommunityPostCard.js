@@ -75,17 +75,26 @@ export default function CommunityPostCard({ post, showImagePreview = true }) {
             <Pressable>
                 <Card className="p-4 border-0 border-b border-gray-100 rounded-none">
                     {showImagePreview && post.image_url && (
-                        <StyledImage
-                            source={{ uri: post.image_url }}
-                            className="w-full rounded-xl mb-3 bg-gray-100"
-                            resizeMode="cover"
-                            style={{
-                                aspectRatio:
-                                    post.image_meta?.width && post.image_meta?.height
-                                        ? post.image_meta.width / post.image_meta.height
-                                        : 16 / 9,
-                            }}
-                        />
+                        <StyledView className="relative">
+                            <StyledImage
+                                source={{ uri: post.image_url }}
+                                className="w-full rounded-xl mb-3 bg-gray-100"
+                                resizeMode="cover"
+                                style={{
+                                    aspectRatio:
+                                        post.image_meta?.width && post.image_meta?.height
+                                            ? post.image_meta.width / post.image_meta.height
+                                            : 16 / 9,
+                                }}
+                            />
+                            {post.images && post.images.length > 1 && (
+                                <StyledView className="absolute bottom-2 right-2 bg-black/60 px-2 py-1 rounded-md">
+                                    <StyledText className="text-white text-xs font-bold">
+                                        +{post.images.length - 1}
+                                    </StyledText>
+                                </StyledView>
+                            )}
+                        </StyledView>
                     )}
                     <StyledView className="mb-2">
                         <StyledView className="flex-row items-center space-x-2 mb-1">

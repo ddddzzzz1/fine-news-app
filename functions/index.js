@@ -6,6 +6,7 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const fetch = require("node-fetch");
 const { Expo } = require("expo-server-sdk");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 setGlobalOptions({ region: "asia-northeast3", memory: "256MiB", timeoutSeconds: 120 });
 
@@ -42,14 +43,14 @@ const formatQuote = (quote) => {
 
     return value !== null
         ? {
-              value,
-              changePercent: changePercent ?? null,
-              raw: {
-                  previousClose: quote.regularMarketPreviousClose ?? null,
-                  currency: quote.currency ?? null,
-                  time: quote.regularMarketTime ?? Date.now() / 1000,
-              },
-          }
+            value,
+            changePercent: changePercent ?? null,
+            raw: {
+                previousClose: quote.regularMarketPreviousClose ?? null,
+                currency: quote.currency ?? null,
+                time: quote.regularMarketTime ?? Date.now() / 1000,
+            },
+        }
         : null;
 };
 
@@ -191,8 +192,8 @@ async function resolveTargetRecipients(target) {
         const ids = Array.isArray(target.ids)
             ? target.ids
             : typeof target.key === "string"
-            ? [target.key]
-            : [];
+                ? [target.key]
+                : [];
 
         if (!ids.length) {
             return [];
@@ -762,3 +763,207 @@ exports.closeAccount = onCall(async (request) => {
         throw new HttpsError("internal", "계정을 삭제하지 못했습니다. 잠시 후 다시 시도해주세요.");
     }
 });
+
+exports.newsFactory = onSchedule(
+    {
+        schedule: "0 * * * *", // Every hour
+        timeZone: "Asia/Seoul",
+        retryCount: 0,
+    },
+    async () => {
+        await runNewsFactory();
+    }
+);
+
+exports.scheduledBriefing = onSchedule(
+    {
+        schedule: "0 */6 * * *", // Every 6 hours (0, 6, 12, 18)
+        timeZone: "Asia/Seoul",
+        retryCount: 0,
+    },
+    async () => {
+        await runBriefingWorkflow();
+    }
+);
+
+exports.generateNewsDraft = onCall(async (request) => {
+    if (!request.auth?.token?.admin) {
+        throw new HttpsError("permission-denied", "Admin only");
+    }
+    return await runNewsFactory();
+});
+
+exports.debugTriggerBriefing = onCall(async (request) => {
+    if (!request.auth?.token?.admin) {
+        throw new HttpsError("permission-denied", "Admin only");
+    }
+    return await runBriefingWorkflow();
+});
+
+async function runNewsFactory() {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        console.error("GEMINI_API_KEY not set");
+        return { error: "Configuration error" };
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-3-pro-preview" });
+
+    // 1. Precise Time Context
+    const now = new Date();
+    const kstOptions = { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false };
+    const currentDate = new Intl.DateTimeFormat('ko-KR', kstOptions).format(now);
+
+    // 2. The "Editor Assistant" Prompt
+    const prompt = `
+    Context:
+    - **Current Date (KST):** ${currentDate}
+    - **Role:** Research Assistant for a Senior Economic Editor.
+
+    Task:
+    Find the single most significant piece of **South Korean Economic News** released within the last 24 hours.
+    The output is for an editor who will rewrite it, so focus on **accuracy, specific numbers, and facts**.
+
+    Search Rules (Strict):
+    1. **Search Query:** Use keywords "한국 경제 속보", "기재부 발표 Today", "한은 금리 속보", "코스피 시황 오늘".
+    2. **Time Filter:** You MUST check the article timestamp. If the news is not from [${currentDate}] or the previous 24 hours, **ignore it completely**.
+    3. **Topic Selection:** Prioritize government policy changes, major corporate M&A/Earnings, or macroeconomic index releases over general opinion pieces.
+
+    Output Requirement:
+    Return a JSON object containing **only** the content fields below. Do NOT include source names or URLs.
+
+    {
+        "title": "string (A factual, dry headline in Korean)",
+        "summary": "string (3 bullet points highlighting the core issue)",
+        "content_html": "string (Rich HTML body. Use <b> for numbers and names. Focus on the 5W1H - Who, What, Where, When, Why, How)",
+        "content_text": "string (The full story text, ensuring all specific figures/statistics are preserved)",
+        "tags": ["array", "of", "strings", "related", "to", "industry"],
+        "key_data_points": "string (A distinct list of strictly numbers/quotes found in the text for the editor to double-check. e.g., 'Growth rate: 3.2%', 'Invested: 500 billion won')",
+        "published_date": "string (The original article publication time in 'YYYY-MM-DD HH:mm' format)"
+    }
+    `;
+
+    try {
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
+        const data = JSON.parse(jsonStr);
+
+        // Duplicate check using title since source_url is removed
+        const existing = await firestore.collection("news_drafts")
+            .where("title", "==", data.title)
+            .get();
+
+        if (!existing.empty) {
+            console.log("Duplicate draft found", data.title);
+            return { skipped: true, reason: "Duplicate" };
+        }
+
+        // Parse published_date to Timestamp
+        let publishedTimestamp = admin.firestore.FieldValue.serverTimestamp();
+        if (data.published_date) {
+            const parsedDate = new Date(data.published_date);
+            if (!isNaN(parsedDate.getTime())) {
+                publishedTimestamp = admin.firestore.Timestamp.fromDate(parsedDate);
+            }
+        }
+
+        const draft = {
+            ...data,
+            state: "pending",
+            created_at: admin.firestore.FieldValue.serverTimestamp(),
+            published_date: publishedTimestamp, // Set the original publication date
+            created_by: "gemini@functions",
+            gemini_prompt: prompt,
+            gemini_response: data,
+        };
+
+        const newsRef = firestore.collection("news_drafts").doc();
+        await newsRef.set(draft);
+
+        console.log(`Created news draft: ${newsRef.id}`);
+        return { success: true, id: newsRef.id };
+    } catch (error) {
+        console.error("News Factory failed", error);
+        return { error: error.message };
+    }
+}
+
+async function runBriefingWorkflow() {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        console.error("GEMINI_API_KEY not set");
+        return { error: "Configuration error" };
+    }
+
+    // 1. Fetch news from the last 6 hours (plus a buffer to ensure coverage)
+    const now = new Date();
+    const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+    const startTs = admin.firestore.Timestamp.fromDate(sixHoursAgo);
+
+    try {
+        const snapshot = await firestore.collection("news_drafts")
+            .where("created_at", ">=", startTs)
+            .orderBy("created_at", "desc")
+            .get();
+
+        if (snapshot.empty) {
+            console.log("No news found in the last 6 hours for briefing.");
+            return { skipped: true, reason: "No news" };
+        }
+
+        const newsItems = snapshot.docs.map(doc => doc.data());
+
+        // If we have very few items, we might want to look back further, but for now stick to the plan.
+        console.log(`Found ${newsItems.length} news items for briefing.`);
+
+        const newsContext = newsItems.map((item, index) => `
+        [News ${index + 1}]
+        Title: ${item.title}
+        Source: ${item.source}
+        Summary: ${item.summary}
+        `).join("\n");
+
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-3-pro-preview" });
+
+        const briefingPrompt = `
+        Based on the following news articles collected over the last 6 hours, create a comprehensive "Daily Briefing" (or "Periodic Briefing") in Korean.
+        The tone should be professional, insightful, and suitable for a mobile app home screen.
+        
+        News Articles:
+        ${newsContext}
+        
+        Format the output as a JSON object:
+        {
+            "title": "Briefing Title (e.g., 'Morning Economic Briefing' or 'Market Update')",
+            "content": "A 3-5 line summary synthesizing the key trends and events.",
+            "key_points": ["Point 1", "Point 2", "Point 3"]
+        }
+        `;
+
+        const result = await model.generateContent(briefingPrompt);
+        const response = await result.response;
+        const text = response.text();
+        const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
+        const briefingData = JSON.parse(jsonStr);
+
+        const briefingRef = firestore.collection("daily_briefings").doc();
+        await briefingRef.set({
+            ...briefingData,
+            created_at: admin.firestore.FieldValue.serverTimestamp(),
+            source_news_count: newsItems.length,
+            type: "periodic_6h"
+        });
+
+        console.log(`Created briefing: ${briefingRef.id}`);
+        return { success: true, id: briefingRef.id };
+
+    } catch (error) {
+        console.error("Briefing Workflow failed", error);
+        return { error: error.message };
+    }
+}

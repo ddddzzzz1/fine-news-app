@@ -13,7 +13,7 @@ service firebase.storage {
       allow write: if ownsFolder();
     }
 
-    match /community_posts/{uid}/{fileName} {
+    match /community_posts/{uid}/{allPaths=**} {
       allow read: if true;
       allow write: if signedIn() && request.auth.uid == uid;
     }

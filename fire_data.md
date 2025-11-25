@@ -32,10 +32,12 @@ This app expects four top-level collections. Seed them in Cloud Firestore (or vi
 | `reviewed_by` | string | Admin UID/email. |
 | `review_notes` | string | Optional rejection reason or editorial note. |
 | `published_date` | timestamp | Visible publish date (set on approval). |
+| `updated_at` | timestamp | Last edit timestamp (mobile or web admin). |
+| `updated_by` | string | Email/UID of the last editor. |
 | `gemini_prompt` | string | Snapshot of the structured Gemini prompt for auditing. |
 | `gemini_response` | map | Raw Gemini JSON response (stored for traceability). |
 
-> 일반 사용자는 `state == "published"` 문서만 읽습니다. 관리자(또는 Functions)만 초안 작성/수정/삭제가 가능하며, 뉴스 탭은 기본적으로 이 컬렉션을 구독합니다.
+> 일반 사용자는 `state == "published"` 문서만 읽습니다. 관리자(또는 Functions)만 초안 작성/수정/삭제가 가능하며, 뉴스 탭은 기본적으로 이 컬렉션을 구독합니다. 관리자는 웹 대시보드(`fine-news-admin`)에서 HTML 편집기를 사용하거나, 모바일 앱(`app/news/edit/[id].js`)에서 간단한 텍스트 편집이 가능합니다.
 
 ### 2. `community_posts`
 | Field | Type | Notes |
@@ -45,8 +47,9 @@ This app expects four top-level collections. Seed them in Cloud Firestore (or vi
 | `board_type` | string | One of `자유`, `취업`, `모집`, `스터디`. Users pick this when creating a post. |
 | `university` | string | Displayed beside board type. |
 | `user_id` | string | Firebase Auth UID of the author. Required for security rules. |
-| `image_url` | string | Optional download URL for the uploaded image (Storage path: `community_posts/{uid}/...`). |
-| `image_meta` | object | Optional metadata `{ width, height, size, storage_path }` stored with the download URL for aspect ratios + cleanup jobs. |
+| `image_url` | string | **Deprecated** (Backward Compat). URL of the first image. |
+| `image_meta` | object | **Deprecated** (Backward Compat). Metadata of the first image. |
+| `images` | array\<object> | List of uploaded images. Each item: `{ url, meta: { width, height, size, storage_path } }`. |
 | `created_date` | timestamp | Sort order. |
 | `comment_count` | number | Optional metric. |
 | `created_by` | string | User email/ID for ownership. |
@@ -134,6 +137,24 @@ Document ID = Firebase Auth UID. Tracks student verification.
 > Default new users to `verification_status = "unverified"` and bump them to `pending`/`verified` during manual review.
 
 > **Account deletion:** Settings → “계정 완전 삭제”는 Firebase Functions(`closeAccount`)를 호출해 `user_profiles`, `saved_contests`, 개인 `calendar_events`, `community_posts`(및 첨부 이미지)를 제거합니다. 위의 Storage path 필드를 채워두어야 업로드된 학생증이 안전하게 삭제됩니다.
+
+### 8. `daily_briefings`
+| Field | Type | Notes |
+| --- | --- | --- |
+| `content` | string | 3-line summary of the day's top news. |
+| `created_at` | timestamp | When the briefing was generated. |
+| `source_news_id` | string | ID of the news draft used to generate this briefing. |
+
+### 9. `system` (Market Indices)
+Document ID: `market_indices`
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `items` | map | Map of index IDs (e.g., `kospi`, `nasdaq`) to their current values. |
+| `items.{id}.value` | number | Current index value. |
+| `items.{id}.change` | number | Change amount. |
+| `items.{id}.changePercent` | number | Percentage change. |
+| `updated_at` | timestamp | Last update time. |
 
 ### Seeding Scripts
 - `node scripts/seedAll.js` → populates `news`, `calendar_events`, `community_posts`, `contests`, `contest_details`, `saved_contests`, and sample `user_profiles`.

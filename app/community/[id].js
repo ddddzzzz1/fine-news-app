@@ -352,9 +352,8 @@ export default function CommunityDetail() {
                                 <TouchableOpacity
                                     key={type}
                                     onPress={() => setEditBoardType(type)}
-                                    className={`px-3 py-1.5 rounded-full mr-2 border ${
-                                        editBoardType === type ? "bg-indigo-600 border-indigo-600" : "border-gray-200"
-                                    }`}
+                                    className={`px-3 py-1.5 rounded-full mr-2 border ${editBoardType === type ? "bg-indigo-600 border-indigo-600" : "border-gray-200"
+                                        }`}
                                 >
                                     <Text className={editBoardType === type ? "text-white text-sm" : "text-gray-700 text-sm"}>{type}</Text>
                                 </TouchableOpacity>
@@ -377,14 +376,26 @@ export default function CommunityDetail() {
                             {createdDate ? format(createdDate, "yy.MM.dd", { locale: ko }) : "날짜 미정"}
                         </StyledText>
 
-                        {post.image_url && (
+                        {/* Image Gallery */}
+                        {post.images && post.images.length > 0 ? (
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
+                                {post.images.map((img, index) => (
+                                    <StyledImage
+                                        key={index}
+                                        source={{ uri: img.url }}
+                                        className="w-80 h-60 rounded-2xl bg-gray-100 mr-3"
+                                        resizeMode="cover"
+                                    />
+                                ))}
+                            </ScrollView>
+                        ) : post.image_url ? (
                             <StyledImage
                                 source={{ uri: post.image_url }}
                                 className="w-full rounded-2xl mb-6 bg-gray-100"
                                 resizeMode="cover"
                                 style={{ aspectRatio: postImageAspectRatio }}
                             />
-                        )}
+                        ) : null}
 
                         <StyledView className="mb-6">
                             {post.content?.split("\n").map((line, idx) => (
@@ -408,146 +419,146 @@ export default function CommunityDetail() {
                 </StyledView>
 
                 {!isPostEditing && (
-                <StyledView className="mb-4">
-                    <StyledText className="text-base font-bold text-gray-900 mb-3">
-                        댓글 {post.comment_count ?? comments.length ?? 0}
-                    </StyledText>
                     <StyledView className="mb-4">
-                        <TextInput
-                            value={comment}
-                            onChangeText={setComment}
-                            placeholder="댓글을 입력해주세요"
-                            multiline
-                            editable={!!userId}
-                            className="border border-gray-200 rounded-lg px-3 py-2 min-h-[60px] text-base"
-                        />
-                        <Button
-                            className="mt-2 h-10 rounded-full"
-                            onPress={handleAddComment}
-                            disabled={!userId || isCommenting}
-                        >
-                            {!userId ? "로그인 필요" : isCommenting ? "등록 중..." : "댓글 등록"}
-                        </Button>
-                    </StyledView>
-                    {comments.length ? (
-                        comments.map((item) => {
-                            const date = item.created_at
-                                ? new Date(item.created_at.seconds ? item.created_at.seconds * 1000 : item.created_at)
-                                : null;
-                            const isOwner = item.user_id === userId;
-                            const isEditing = editingCommentId === item.id;
+                        <StyledText className="text-base font-bold text-gray-900 mb-3">
+                            댓글 {post.comment_count ?? comments.length ?? 0}
+                        </StyledText>
+                        <StyledView className="mb-4">
+                            <TextInput
+                                value={comment}
+                                onChangeText={setComment}
+                                placeholder="댓글을 입력해주세요"
+                                multiline
+                                editable={!!userId}
+                                className="border border-gray-200 rounded-lg px-3 py-2 min-h-[60px] text-base"
+                            />
+                            <Button
+                                className="mt-2 h-10 rounded-full"
+                                onPress={handleAddComment}
+                                disabled={!userId || isCommenting}
+                            >
+                                {!userId ? "로그인 필요" : isCommenting ? "등록 중..." : "댓글 등록"}
+                            </Button>
+                        </StyledView>
+                        {comments.length ? (
+                            comments.map((item) => {
+                                const date = item.created_at
+                                    ? new Date(item.created_at.seconds ? item.created_at.seconds * 1000 : item.created_at)
+                                    : null;
+                                const isOwner = item.user_id === userId;
+                                const isEditing = editingCommentId === item.id;
 
-                            const startEdit = () => {
-                                setEditingCommentId(item.id);
-                                setEditingText(item.content);
-                            };
+                                const startEdit = () => {
+                                    setEditingCommentId(item.id);
+                                    setEditingText(item.content);
+                                };
 
-                            const cancelEdit = () => {
-                                setEditingCommentId(null);
-                                setEditingText("");
-                            };
+                                const cancelEdit = () => {
+                                    setEditingCommentId(null);
+                                    setEditingText("");
+                                };
 
-                            const saveEdit = async () => {
-                                if (!editingText.trim()) {
-                                    Alert.alert("댓글 수정", "내용을 입력해주세요.");
-                                    return;
-                                }
-                                try {
-                                    const updated = comments.map((c) =>
-                                        c.id === item.id ? { ...c, content: editingText.trim(), edited_at: Timestamp.fromDate(new Date()) } : c
-                                    );
-                                    await updateDoc(doc(db, "community_posts", post.id), { comments: updated });
-                                    await queryClient.invalidateQueries({ queryKey: ["community-post", post.id] });
-                                    cancelEdit();
-                                } catch (error) {
-                                    console.log("Failed to edit comment", error);
-                                    Alert.alert("오류", "댓글을 수정하지 못했습니다.");
-                                }
-                            };
+                                const saveEdit = async () => {
+                                    if (!editingText.trim()) {
+                                        Alert.alert("댓글 수정", "내용을 입력해주세요.");
+                                        return;
+                                    }
+                                    try {
+                                        const updated = comments.map((c) =>
+                                            c.id === item.id ? { ...c, content: editingText.trim(), edited_at: Timestamp.fromDate(new Date()) } : c
+                                        );
+                                        await updateDoc(doc(db, "community_posts", post.id), { comments: updated });
+                                        await queryClient.invalidateQueries({ queryKey: ["community-post", post.id] });
+                                        cancelEdit();
+                                    } catch (error) {
+                                        console.log("Failed to edit comment", error);
+                                        Alert.alert("오류", "댓글을 수정하지 못했습니다.");
+                                    }
+                                };
 
-                            const deleteComment = async () => {
-                                Alert.alert("댓글 삭제", "댓글을 삭제할까요?", [
-                                    { text: "취소", style: "cancel" },
-                                    {
-                                        text: "삭제",
-                                        style: "destructive",
-                                        onPress: async () => {
-                                            try {
-                                                const updated = comments.filter((c) => c.id !== item.id);
-                                                await updateDoc(doc(db, "community_posts", post.id), {
-                                                    comments: updated,
-                                                    comment_count: increment(-1),
-                                                });
-                                                await Promise.all([
-                                                    queryClient.invalidateQueries({ queryKey: ["community-post", post.id] }),
-                                                    queryClient.invalidateQueries({ queryKey: ["tab-community-posts"] }),
-                                                ]);
-                                            } catch (error) {
-                                                console.log("Failed to delete comment", error);
-                                                Alert.alert("오류", "댓글을 삭제하지 못했습니다.");
-                                            }
+                                const deleteComment = async () => {
+                                    Alert.alert("댓글 삭제", "댓글을 삭제할까요?", [
+                                        { text: "취소", style: "cancel" },
+                                        {
+                                            text: "삭제",
+                                            style: "destructive",
+                                            onPress: async () => {
+                                                try {
+                                                    const updated = comments.filter((c) => c.id !== item.id);
+                                                    await updateDoc(doc(db, "community_posts", post.id), {
+                                                        comments: updated,
+                                                        comment_count: increment(-1),
+                                                    });
+                                                    await Promise.all([
+                                                        queryClient.invalidateQueries({ queryKey: ["community-post", post.id] }),
+                                                        queryClient.invalidateQueries({ queryKey: ["tab-community-posts"] }),
+                                                    ]);
+                                                } catch (error) {
+                                                    console.log("Failed to delete comment", error);
+                                                    Alert.alert("오류", "댓글을 삭제하지 못했습니다.");
+                                                }
+                                            },
                                         },
-                                    },
-                                ]);
-                            };
+                                    ]);
+                                };
 
-                            return (
-                                <StyledView key={item.id} className="mb-3 border border-gray-100 rounded-lg p-3 bg-gray-50">
-                                    <StyledView className="flex-row justify-between items-center mb-1">
-                                        <StyledText className="text-sm font-semibold text-gray-900">
-                                            {item.display_name ||
-                                                (item.is_author ? "익명(작성자)" : item.author || "익명")}
+                                return (
+                                    <StyledView key={item.id} className="mb-3 border border-gray-100 rounded-lg p-3 bg-gray-50">
+                                        <StyledView className="flex-row justify-between items-center mb-1">
+                                            <StyledText className="text-sm font-semibold text-gray-900">
+                                                {item.display_name ||
+                                                    (item.is_author ? "익명(작성자)" : item.author || "익명")}
+                                            </StyledText>
+                                            {isOwner ? (
+                                                <StyledView className="flex-row space-x-2">
+                                                    {isEditing ? (
+                                                        <>
+                                                            <TouchableOpacity onPress={saveEdit}>
+                                                                <StyledText className="text-xs text-indigo-600">저장</StyledText>
+                                                            </TouchableOpacity>
+                                                            <TouchableOpacity onPress={cancelEdit}>
+                                                                <StyledText className="text-xs text-gray-500">취소</StyledText>
+                                                            </TouchableOpacity>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <TouchableOpacity onPress={startEdit}>
+                                                                <StyledText className="text-xs text-indigo-600">수정</StyledText>
+                                                            </TouchableOpacity>
+                                                            <TouchableOpacity onPress={deleteComment}>
+                                                                <StyledText className="text-xs text-red-500">삭제</StyledText>
+                                                            </TouchableOpacity>
+                                                        </>
+                                                    )}
+                                                </StyledView>
+                                            ) : (
+                                                <TouchableOpacity
+                                                    onPress={() => openReportSheet({ type: "comment", comment: item })}
+                                                >
+                                                    <StyledText className="text-xs text-red-500">신고</StyledText>
+                                                </TouchableOpacity>
+                                            )}
+                                        </StyledView>
+                                        <StyledText className="text-xs text-gray-500 mb-1">
+                                            {date ? format(date, "yy.MM.dd HH:mm", { locale: ko }) : ""}
                                         </StyledText>
-                                        {isOwner ? (
-                                            <StyledView className="flex-row space-x-2">
-                                                {isEditing ? (
-                                                    <>
-                                                        <TouchableOpacity onPress={saveEdit}>
-                                                            <StyledText className="text-xs text-indigo-600">저장</StyledText>
-                                                        </TouchableOpacity>
-                                                        <TouchableOpacity onPress={cancelEdit}>
-                                                            <StyledText className="text-xs text-gray-500">취소</StyledText>
-                                                        </TouchableOpacity>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <TouchableOpacity onPress={startEdit}>
-                                                            <StyledText className="text-xs text-indigo-600">수정</StyledText>
-                                                        </TouchableOpacity>
-                                                        <TouchableOpacity onPress={deleteComment}>
-                                                            <StyledText className="text-xs text-red-500">삭제</StyledText>
-                                                        </TouchableOpacity>
-                                                    </>
-                                                )}
-                                            </StyledView>
+                                        {isEditing ? (
+                                            <TextInput
+                                                value={editingText}
+                                                onChangeText={setEditingText}
+                                                multiline
+                                                className="border border-gray-200 rounded-lg px-2 py-1 text-sm bg-white"
+                                            />
                                         ) : (
-                                            <TouchableOpacity
-                                                onPress={() => openReportSheet({ type: "comment", comment: item })}
-                                            >
-                                                <StyledText className="text-xs text-red-500">신고</StyledText>
-                                            </TouchableOpacity>
+                                            <StyledText className="text-sm text-gray-700">{item.content}</StyledText>
                                         )}
                                     </StyledView>
-                                    <StyledText className="text-xs text-gray-500 mb-1">
-                                        {date ? format(date, "yy.MM.dd HH:mm", { locale: ko }) : ""}
-                                    </StyledText>
-                                    {isEditing ? (
-                                        <TextInput
-                                            value={editingText}
-                                            onChangeText={setEditingText}
-                                            multiline
-                                            className="border border-gray-200 rounded-lg px-2 py-1 text-sm bg-white"
-                                        />
-                                    ) : (
-                                        <StyledText className="text-sm text-gray-700">{item.content}</StyledText>
-                                    )}
-                                </StyledView>
-                            );
-                        })
-                    ) : (
-                        <StyledText className="text-sm text-gray-500">아직 댓글이 없습니다.</StyledText>
-                    )}
-                </StyledView>
+                                );
+                            })
+                        ) : (
+                            <StyledText className="text-sm text-gray-500">아직 댓글이 없습니다.</StyledText>
+                        )}
+                    </StyledView>
                 )}
             </StyledScrollView>
             <Modal transparent visible={!!reportTarget} animationType="fade" onRequestClose={closeReportSheet}>

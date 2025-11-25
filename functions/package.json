@@ -9,6 +9,7 @@
     "build": "echo \"No build step\""
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "expo-server-sdk": "^4.0.0",
     "firebase-admin": "^12.6.0",
     "firebase-functions": "^5.1.0",
