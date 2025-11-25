@@ -1,10 +1,22 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Image, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, increment, Timestamp, deleteDoc } from "firebase/firestore";
+import {
+    doc,
+    getDoc,
+    updateDoc,
+    arrayUnion,
+    arrayRemove,
+    increment,
+    Timestamp,
+    deleteDoc,
+    addDoc,
+    collection,
+    serverTimestamp,
+} from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
 import { ArrowLeft, Heart } from "lucide-react-native";
 import { Button } from "../../components/ui/button";
@@ -32,6 +44,14 @@ export default function CommunityDetail() {
     const [editTitle, setEditTitle] = useState("");
     const [editContent, setEditContent] = useState("");
     const [editBoardType, setEditBoardType] = useState(boardTypes[0]);
+    const [reportTarget, setReportTarget] = useState(null);
+    const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+    const REPORT_REASONS = [
+        { label: "스팸/광고", value: "spam" },
+        { label: "욕설/혐오 표현", value: "abusive" },
+        { label: "허위 정보", value: "misinformation" },
+        { label: "기타 정책 위반", value: "policy" },
+    ];
 
     const { data: post, isLoading } = useQuery({
         queryKey: ["community-post", id],
@@ -180,6 +200,62 @@ export default function CommunityDetail() {
 
     const comments = post?.comments || [];
 
+    const enforceLogin = () => {
+        Alert.alert("로그인 필요", "이 기능을 사용하려면 로그인해주세요.", [
+            { text: "취소", style: "cancel" },
+            { text: "로그인", onPress: () => router.push("/login") },
+        ]);
+    };
+
+    const openReportSheet = (targetConfig) => {
+        if (!userId) {
+            enforceLogin();
+            return;
+        }
+        setReportTarget(targetConfig);
+    };
+
+    const closeReportSheet = () => {
+        if (isSubmittingReport) return;
+        setReportTarget(null);
+    };
+
+    const submitReport = async (reason) => {
+        if (!reportTarget || !post?.id || !reason || isSubmittingReport) return;
+        setIsSubmittingReport(true);
+        try {
+            await addDoc(collection(db, "community_reports"), {
+                type: reportTarget.type,
+                post_id: post.id,
+                comment_id: reportTarget.type === "comment" ? reportTarget.comment?.id : null,
+                reason,
+                reporter_id: userId,
+                reporter_identifier: currentIdentifier,
+                reported_user_id:
+                    reportTarget.type === "comment"
+                        ? reportTarget.comment?.user_id || null
+                        : post.user_id || post.created_by || null,
+                snapshot: {
+                    post: {
+                        title: post.title,
+                        content: post.content,
+                        board_type: post.board_type,
+                    },
+                    comment: reportTarget.type === "comment" ? reportTarget.comment : null,
+                },
+                status: "pending",
+                created_at: serverTimestamp(),
+            });
+            Alert.alert("신고 완료", "운영팀이 검토 후 조치할 예정입니다.");
+        } catch (error) {
+            console.log("Failed to submit report", error);
+            Alert.alert("오류", "신고를 접수하지 못했습니다. 잠시 후 다시 시도해주세요.");
+        } finally {
+            setIsSubmittingReport(false);
+            setReportTarget(null);
+        }
+    };
+
     if (isLoading) {
         return (
             <StyledSafeAreaView edges={["top"]} className="flex-1 bg-white items-center justify-center">
@@ -260,7 +336,9 @@ export default function CommunityDetail() {
                         )}
                     </StyledView>
                 ) : (
-                    <View style={{ width: 40 }} />
+                    <Button variant="ghost" onPress={() => openReportSheet({ type: "post" })} className="rounded-full">
+                        <StyledText className="text-sm text-red-500">신고</StyledText>
+                    </Button>
                 )}
             </StyledView>
 
@@ -425,7 +503,7 @@ export default function CommunityDetail() {
                                             {item.display_name ||
                                                 (item.is_author ? "익명(작성자)" : item.author || "익명")}
                                         </StyledText>
-                                        {isOwner && (
+                                        {isOwner ? (
                                             <StyledView className="flex-row space-x-2">
                                                 {isEditing ? (
                                                     <>
@@ -447,6 +525,12 @@ export default function CommunityDetail() {
                                                     </>
                                                 )}
                                             </StyledView>
+                                        ) : (
+                                            <TouchableOpacity
+                                                onPress={() => openReportSheet({ type: "comment", comment: item })}
+                                            >
+                                                <StyledText className="text-xs text-red-500">신고</StyledText>
+                                            </TouchableOpacity>
                                         )}
                                     </StyledView>
                                     <StyledText className="text-xs text-gray-500 mb-1">
@@ -471,6 +555,35 @@ export default function CommunityDetail() {
                 </StyledView>
                 )}
             </StyledScrollView>
+            <Modal transparent visible={!!reportTarget} animationType="fade" onRequestClose={closeReportSheet}>
+                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" }}>
+                    <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeReportSheet} />
+                    <StyledView className="bg-white rounded-t-3xl px-5 pt-5 pb-6">
+                        <StyledText className="text-base font-semibold text-gray-900 mb-1">신고 사유 선택</StyledText>
+                        <StyledText className="text-xs text-gray-500 mb-4">
+                            운영팀이 빠르게 검토할 수 있도록 가장 가까운 사유를 선택해주세요.
+                        </StyledText>
+                        {REPORT_REASONS.map((reason) => (
+                            <TouchableOpacity
+                                key={reason.value}
+                                className={`py-3 border-b border-gray-100 ${isSubmittingReport ? "opacity-50" : ""}`}
+                                disabled={isSubmittingReport}
+                                onPress={() => submitReport(reason.value)}
+                            >
+                                <StyledText className="text-sm text-gray-900">{reason.label}</StyledText>
+                            </TouchableOpacity>
+                        ))}
+                        <Button
+                            variant="ghost"
+                            className="mt-4 rounded-full"
+                            onPress={closeReportSheet}
+                            disabled={isSubmittingReport}
+                        >
+                            취소
+                        </Button>
+                    </StyledView>
+                </View>
+            </Modal>
         </StyledSafeAreaView>
     );
 }

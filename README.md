@@ -138,6 +138,22 @@ Lucide Icons
 </ul>
 </td>
 </tr>
+<tr>
+<td width="50%">
+<h3>🚨 커뮤니티 신고</h3>
+<ul>
+<li>게시글/댓글에 신고 버튼 노출</li>
+<li>신고 내용은 Firestore `community_reports`에 저장</li>
+</ul>
+</td>
+<td width="50%">
+<h3>⚙️ 설정/관리자 도구</h3>
+<ul>
+<li>새 설정 화면에서 계정/보안/데이터 제어</li>
+<li>관리자 계정은 앱에서 “신고 관리” 진입 가능</li>
+</ul>
+</td>
+</tr>
 </table>
 
 <br />
@@ -313,3 +329,22 @@ Team FINE (SIRT & D-RAM)
 <p align="center">
 <i>Happy Hacking! 🎉</i>
 </p>
+
+<br />
+
+🛡️ 신고 & 관리자 계정 세팅
+
+1. 커뮤니티 화면에서 사용자는 게시글/댓글을 신고할 수 있으며, 신고 내용은 Firestore의 `community_reports` 컬렉션에 저장됩니다.
+2. Firestore 룰(`firestore.rules`)을 배포한 뒤 `admin` 커스텀 클레임을 가진 계정만 신고 내역을 확인할 수 있습니다.
+3. 서비스 계정 JSON을 프로젝트 루트(`serviceAccount.json`)에 두고 아래 스크립트로 클레임을 관리하세요.
+
+```bash
+# 현재 클레임 확인
+node scripts/manageAdminClaims.js fine3410@gmail.com export
+
+# admin 권한 부여/회수
+node scripts/manageAdminClaims.js fine3410@gmail.com grant
+node scripts/manageAdminClaims.js fine3410@gmail.com revoke
+```
+
+4. admin 계정으로 앱에 로그인하면 마이 탭에 `신고 관리` 버튼이 나타나며, `/admin/reports` 화면에서 신고 상태를 `검토 완료`/`조치 완료`로 업데이트하거나 해당 게시글/댓글을 즉시 삭제할 수 있습니다.

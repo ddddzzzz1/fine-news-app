@@ -7,10 +7,11 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
-import { Settings, ChevronRight, FileText, HelpCircle, LogOut, Bookmark, Bell } from "lucide-react-native";
+import { Settings, ChevronRight, FileText, HelpCircle, LogOut, Bookmark, Bell, Shield } from "lucide-react-native";
 import { signOut } from "firebase/auth";
 import { useRouter } from "expo-router";
 import { useUserProfile } from "../../lib/useUserProfile";
+import { useAdminClaims } from "../../hooks/useAdminClaims";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 const StyledScrollView = styled(ScrollView);
@@ -30,6 +31,7 @@ export default function Profile() {
     const userId = currentUser?.uid;
     const email = currentUser?.email;
     const { data: userProfile } = useUserProfile(userId);
+    const { isAdmin } = useAdminClaims();
     const profile = userProfile || FALLBACK_PROFILE;
 
     const displayName =
@@ -95,6 +97,14 @@ export default function Profile() {
         { icon: HelpCircle, label: "도움말", count: null, action: () => router.push("/help") },
         { icon: Settings, label: "설정", count: null, action: () => router.push("/settings") },
     ];
+    if (isAdmin) {
+        menuItems.splice(0, 0, {
+            icon: Shield,
+            label: "신고 관리",
+            count: null,
+            action: () => router.push("/admin/reports"),
+        });
+    }
 
     const handleLogout = async () => {
         try {

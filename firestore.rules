@@ -118,6 +118,31 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /community_reports/{reportId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          "type",
+          "post_id",
+          "comment_id",
+          "reason",
+          "reporter_id",
+          "reporter_identifier",
+          "reported_user_id",
+          "snapshot",
+          "status",
+          "created_at"
+        ])
+        && request.resource.data.status == "pending"
+        && request.resource.data.reason in ["spam", "abusive", "misinformation", "policy"]
+        && request.resource.data.reporter_id == request.auth.uid
+        && request.resource.data.created_at == request.time
+        && request.resource.data.reporter_identifier == (
+          request.auth.token.email != null ? request.auth.token.email : request.auth.uid
+        );
+
+      allow read, update, delete: if signedIn() && request.auth.token.admin == true;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
