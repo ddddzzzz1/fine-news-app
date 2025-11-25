@@ -1,6 +1,8 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage";
+import { getFunctions } from "firebase/functions";
 
 // Replace the values below with your actual Firebase project configuration.
 // Copy this file to `firebaseConfig.js` and fill in the credentials locally.
@@ -18,3 +20,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+export const storage = getStorage(app);
+export const functions = getFunctions(app, "asia-northeast3");
+export { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";

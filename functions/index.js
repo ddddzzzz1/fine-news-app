@@ -2,6 +2,7 @@
 
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { setGlobalOptions } = require("firebase-functions/v2");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const fetch = require("node-fetch");
 const { Expo } = require("expo-server-sdk");
@@ -14,6 +15,7 @@ if (!admin.apps.length) {
 
 const firestore = admin.firestore();
 const expoClient = new Expo({ accessToken: process.env.EXPO_ACCESS_TOKEN ?? undefined });
+const storageBucket = admin.storage().bucket();
 
 const PUSH_SETTINGS_COLLECTION = "user_push_settings";
 const NOTIFICATION_REQUESTS_COLLECTION = "notification_requests";
@@ -608,3 +610,155 @@ exports.cleanupPushTokens = onSchedule(
         });
     }
 );
+
+function normalizeStoragePath(path) {
+    if (!path || typeof path !== "string") {
+        return null;
+    }
+    return path.replace(/^\/+/g, "");
+}
+
+async function deleteFileByPath(path) {
+    const normalized = normalizeStoragePath(path);
+    if (!normalized) {
+        return 0;
+    }
+    try {
+        await storageBucket.file(normalized).delete({ ignoreNotFound: true });
+        return 1;
+    } catch (error) {
+        if (error?.code === 404 || error?.code === 204) {
+            return 0;
+        }
+        console.warn("Failed to delete storage file", normalized, error);
+        return 0;
+    }
+}
+
+async function deleteFilesWithPrefix(prefix) {
+    const normalized = normalizeStoragePath(prefix);
+    if (!normalized) {
+        return 0;
+    }
+    try {
+        const [files] = await storageBucket.getFiles({ prefix: normalized });
+        await Promise.all(
+            files.map((file) =>
+                file.delete({ ignoreNotFound: true }).catch((error) => {
+                    console.warn("Failed to delete storage file", file.name, error);
+                })
+            )
+        );
+        return files.length;
+    } catch (error) {
+        console.warn("Failed to list storage files", normalized, error);
+        return 0;
+    }
+}
+
+async function deleteDocsWhere(collectionName, field, value, options = {}) {
+    const batchSize = options.batchSize ?? 200;
+    let deleted = 0;
+
+    while (true) {
+        const snapshot = await firestore.collection(collectionName).where(field, "==", value).limit(batchSize).get();
+        if (snapshot.empty) {
+            break;
+        }
+
+        const batch = firestore.batch();
+        for (const docSnap of snapshot.docs) {
+            if (typeof options.beforeDelete === "function") {
+                await options.beforeDelete(docSnap);
+            }
+            batch.delete(docSnap.ref);
+            deleted += 1;
+        }
+
+        await batch.commit();
+    }
+
+    return deleted;
+}
+
+async function deleteUserProfile(uid) {
+    const ref = firestore.collection("user_profiles").doc(uid);
+    const snapshot = await ref.get();
+    if (!snapshot.exists) {
+        return { deleted: false, removedFiles: 0 };
+    }
+
+    const data = snapshot.data() || {};
+    await ref.delete();
+
+    let removedFiles = 0;
+    if (data.student_id_storage_folder) {
+        removedFiles += await deleteFilesWithPrefix(data.student_id_storage_folder);
+    } else if (data.student_id_storage_path) {
+        removedFiles += await deleteFileByPath(data.student_id_storage_path);
+    }
+
+    return { deleted: true, removedFiles };
+}
+
+async function deleteUserAccountData(uid) {
+    const summary = {
+        profileDeleted: false,
+        removedStudentIdFiles: 0,
+        pushSettingsCleared: false,
+        savedContestsDeleted: 0,
+        calendarEventsDeleted: 0,
+        communityPostsDeleted: 0,
+        communityImagesDeleted: 0,
+    };
+
+    const profileResult = await deleteUserProfile(uid);
+    summary.profileDeleted = profileResult.deleted;
+    summary.removedStudentIdFiles = profileResult.removedFiles;
+
+    try {
+        await firestore.collection(PUSH_SETTINGS_COLLECTION).doc(uid).delete();
+        summary.pushSettingsCleared = true;
+    } catch (error) {
+        console.warn("Failed to delete push settings", uid, error);
+    }
+
+    summary.savedContestsDeleted = await deleteDocsWhere(SAVED_CONTESTS_COLLECTION, "user_id", uid);
+    summary.calendarEventsDeleted = await deleteDocsWhere("calendar_events", "user_id", uid);
+    summary.communityPostsDeleted = await deleteDocsWhere("community_posts", "user_id", uid, {
+        beforeDelete: async (docSnap) => {
+            const data = docSnap.data() || {};
+            if (data?.image_meta?.storage_path) {
+                summary.communityImagesDeleted += await deleteFileByPath(data.image_meta.storage_path);
+            }
+        },
+    });
+
+    return summary;
+}
+
+exports.closeAccount = onCall(async (request) => {
+    const uid = request.auth?.uid;
+    const email = request.auth?.token?.email ?? null;
+
+    if (!uid) {
+        throw new HttpsError("unauthenticated", "로그인한 사용자만 계정을 삭제할 수 있습니다.");
+    }
+
+    try {
+        const summary = await deleteUserAccountData(uid);
+        try {
+            await admin.auth().deleteUser(uid);
+        } catch (error) {
+            if (error?.code !== "auth/user-not-found") {
+                throw error;
+            }
+        }
+
+        console.log("Account deleted", { uid, email, summary });
+        return { ok: true, summary };
+    } catch (error) {
+        console.error("Failed to delete account", { uid, email, error });
+        throw new HttpsError("internal", "계정을 삭제하지 못했습니다. 잠시 후 다시 시도해주세요.");
+    }
+});

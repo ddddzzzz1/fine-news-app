@@ -171,7 +171,7 @@ export function usePushNotifications(user) {
                 platform: Platform.OS,
                 device_name: Device.modelName ?? "Unknown device",
                 app_version: getAppVersion(),
-                last_seen: serverTimestamp(),
+                last_seen: new Date(),
             });
 
             const payload = {

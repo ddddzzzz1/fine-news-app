@@ -13,29 +13,12 @@ import {
     signOut,
 } from "firebase/auth";
 import { logAuthEvent, isTestAccountEmail } from "../lib/authLogger";
+import { passwordValidators, validatePassword } from "../lib/passwordValidators";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 const StyledView = styled(View);
 const StyledText = styled(Text);
 const StyledTextInput = styled(TextInput);
-
-const passwordValidators = [
-    {
-        key: "length",
-        message: "6~12자 사이로 입력하세요",
-        check: (password) => password.length >= 6 && password.length <= 12,
-    },
-    {
-        key: "lower",
-        message: "소문자를 포함해야 합니다",
-        check: (password) => /[a-z]/.test(password),
-    },
-    {
-        key: "number",
-        message: "숫자를 포함해야 합니다",
-        check: (password) => /\d/.test(password),
-    },
-];
 
 export default function Register() {
     const router = useRouter();
@@ -44,9 +27,6 @@ export default function Register() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
-
-    const validatePassword = (value) =>
-        passwordValidators.every((validator) => validator.check(value));
 
     const getVerificationPrompt = async (user, normalizedEmail) => {
         if (!user) {

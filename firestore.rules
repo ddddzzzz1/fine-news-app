@@ -9,6 +9,10 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
     function postOwner() {
       return signedIn() && (
         (resource.data.user_id != null && resource.data.user_id == request.auth.uid) ||
@@ -63,6 +67,11 @@ service cloud.firestore {
       allow read: if true;
     }
 
+    match /news_drafts/{docId} {
+      allow read: if isAdmin() || resource.data.state == "published";
+      allow create, update, delete: if isAdmin();
+    }
+
     match /contests/{docId} {
       allow read: if true;
     }
@@ -73,18 +82,34 @@ service cloud.firestore {
 
     match /calendar_events/{eventId} {
       allow read: if true;
-      allow create: if signedIn()
-        && request.resource.data.is_personal == true
-        && (
-          request.resource.data.user_id == request.auth.uid
-          || request.resource.id.matches('^saved-' + request.auth.uid + '-.*$')
-        );
-      allow update, delete: if signedIn()
-        && resource.data.is_personal == true
-        && (
-          resource.data.user_id == request.auth.uid
-          || resource.id.matches('^saved-' + request.auth.uid + '-.*$')
-        );
+      allow create: if signedIn() && (
+        (
+          request.resource.data.is_personal == true
+          && request.resource.data.user_id == request.auth.uid
+          && request.resource.id.matches('^saved-' + request.auth.uid + '-.*$')
+        )
+        || (
+          isAdmin()
+          && request.resource.data.is_personal == false
+          && request.resource.data.category == "경제"
+          && request.resource.id.matches('^global-.*$')
+        )
+      );
+      allow update, delete: if signedIn() && (
+        (
+          resource.data.is_personal == true
+          && (
+            resource.data.user_id == request.auth.uid
+            || resource.id.matches('^saved-' + request.auth.uid + '-.*$')
+          )
+        )
+        || (
+          isAdmin()
+          && resource.data.is_personal == false
+          && resource.data.category == "경제"
+          && resource.id.matches('^global-.*$')
+        )
+      );
     }
 
     match /community_posts/{postId} {

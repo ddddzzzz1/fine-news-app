@@ -36,7 +36,7 @@ const calendarEvents = [
         title: "AI 해커톤 준비 모임",
         description: "해커톤 참가 예정자를 위한 준비 모임",
         date: admin.firestore.Timestamp.fromDate(new Date("2025-02-10")),
-        category: "인턴",
+        category: "경제",
         is_personal: false,
     },
     {

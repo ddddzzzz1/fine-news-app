@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
@@ -15,9 +15,14 @@ const StyledView = styled(View);
 const StyledText = styled(Text);
 const StyledScrollView = styled(ScrollView);
 const StyledTouchableOpacity = styled(TouchableOpacity);
+const StyledCategoryScrollView = styled(ScrollView);
+
+const categories = ["인기글", "자유", "취업", "모집", "스터디"];
+const POPULAR_LIKE_THRESHOLD = 5;
 
 export default function CommunityTab() {
     const router = useRouter();
+    const [selectedCategory, setSelectedCategory] = useState(categories[0]);
 
     const { data: communityPosts, isLoading } = useQuery({
         queryKey: ["tab-community-posts"],
@@ -34,11 +39,56 @@ export default function CommunityTab() {
         initialData: [],
     });
 
+    const filteredPosts = useMemo(() => {
+        if (!communityPosts?.length) return [];
+
+        if (selectedCategory === "인기글") {
+            return communityPosts
+                .filter((post) => {
+                    const likeCount = post.like_count ?? post.liked_users?.length ?? 0;
+                    return likeCount > POPULAR_LIKE_THRESHOLD;
+                })
+                .sort((a, b) => {
+                    const aLikes = a.like_count ?? a.liked_users?.length ?? 0;
+                    const bLikes = b.like_count ?? b.liked_users?.length ?? 0;
+                    return bLikes - aLikes;
+                });
+        }
+
+        return communityPosts.filter((post) => post.board_type === selectedCategory);
+    }, [communityPosts, selectedCategory]);
+
     return (
         <StyledSafeAreaView edges={["top"]} className="flex-1 bg-white">
             <StyledView className="px-4 py-4 border-b border-gray-100">
                 <StyledText className="text-xl font-bold text-gray-900">커뮤니티</StyledText>
-                <StyledText className="text-sm text-gray-500 mt-1">실시간 인기 게시글을 확인하세요</StyledText>
+                <StyledText className="text-sm text-gray-500 mt-1">인기글부터 관심 주제까지 확인해보세요</StyledText>
+                <StyledCategoryScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    className="mt-4"
+                    contentContainerStyle={{ paddingRight: 16 }}
+                >
+                    <StyledView className="flex-row space-x-2">
+                        {categories.map((category) => (
+                            <StyledTouchableOpacity
+                                key={category}
+                                onPress={() => setSelectedCategory(category)}
+                                className={`px-4 py-2 rounded-full border ${
+                                    selectedCategory === category ? "bg-indigo-600 border-indigo-600" : "border-gray-200"
+                                }`}
+                            >
+                                <StyledText
+                                    className={`text-sm ${
+                                        selectedCategory === category ? "text-white" : "text-gray-700"
+                                    }`}
+                                >
+                                    {category}
+                                </StyledText>
+                            </StyledTouchableOpacity>
+                        ))}
+                    </StyledView>
+                </StyledCategoryScrollView>
             </StyledView>
 
             <StyledScrollView className="flex-1 px-4">
@@ -56,7 +106,17 @@ export default function CommunityTab() {
                                 ))}
                         </StyledView>
                     ) : (
-                        communityPosts.map((post) => <CommunityPostCard key={post.id} post={post} />)
+                        <>
+                            {filteredPosts.length === 0 ? (
+                                <StyledView className="py-8 items-center">
+                                    <StyledText className="text-sm text-gray-500">선택한 카테고리에 게시글이 없어요.</StyledText>
+                                </StyledView>
+                            ) : (
+                                filteredPosts.map((post) => (
+                                    <CommunityPostCard key={post.id} post={post} showImagePreview={false} />
+                                ))
+                            )}
+                        </>
                     )}
                 </StyledView>
             </StyledScrollView>

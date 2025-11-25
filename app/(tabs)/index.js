@@ -7,10 +7,9 @@ import { useQuery } from '@tanstack/react-query';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import { Button } from '../../components/ui/button';
-import { Search, Bell, Edit3 } from 'lucide-react-native';
+import { Search, Bell } from 'lucide-react-native';
 import NewsCard from '../../components/NewsCard';
 import StockTicker from '../../components/StockTicker';
-import CommunityPostCard from '../../components/CommunityPostCard';
 import { Skeleton } from '../../components/ui/skeleton';
 import { styled } from 'nativewind';
 import MarketIndexGuideModal from '../../components/MarketIndexGuideModal';
@@ -28,7 +27,6 @@ export default function Home() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const tabBarHeight = useBottomTabBarHeight();
-    const [activeTab, setActiveTab] = useState('뉴스레터');
     const [showIndexModal, setShowIndexModal] = useState(false);
     const { indices: displayIndices } = useMarketIndices();
     const keyboardVisible = useKeyboardVisible();
@@ -88,25 +86,6 @@ export default function Home() {
         initialData: []
     });
 
-    const { data: communityPosts, isLoading: communityLoading } = useQuery({
-        queryKey: ['home-community-posts'],
-        queryFn: async () => {
-            try {
-                const q = query(collection(db, 'community_posts'), orderBy('like_count', 'desc'), limit(20));
-                const querySnapshot = await getDocs(q);
-                return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            } catch (e) {
-                console.log("Error fetching posts", e);
-                return [];
-            }
-        },
-        initialData: []
-    });
-
-    const popularPosts = communityPosts.filter(
-        post => (post.like_count || post.liked_users?.length || 0) > 5
-    );
-
     useEffect(() => {
         if (!selectedIndexId && displayIndices.length) {
             setSelectedIndexId(displayIndices[0].id);
@@ -124,9 +103,8 @@ export default function Home() {
     const safeTabBarHeight = Number.isFinite(tabBarHeight) ? tabBarHeight : 0;
     const tabBarVisibleHeight = Math.max(safeTabBarHeight - bottomInset, 0);
     const baseBottomOffset = tabBarVisibleHeight + bottomInset;
-    const tickerBottomOffset = tabBarVisibleHeight;
+    const tickerBottomOffset = safeTabBarHeight;
     const scrollPaddingBottom = showIndexBar ? baseBottomOffset + indexBarHeight + 32 : baseBottomOffset + 32;
-    const fabBottom = showIndexBar ? baseBottomOffset + indexBarHeight + 24 : baseBottomOffset + 24;
 
     return (
         <StyledSafeAreaView edges={['top']} className="flex-1 bg-white">
@@ -160,87 +138,42 @@ export default function Home() {
                         뉴스 · 커뮤니티 · 공모전 검색
                     </StyledText>
                 </StyledTouchableOpacity>
-
-                {/* Tabs */}
-                <StyledView className="flex-row border-b border-gray-200">
-                    {['뉴스레터', '인기글'].map((tab) => (
-                        <StyledTouchableOpacity
-                            key={tab}
-                            onPress={() => setActiveTab(tab)}
-                            className={`flex-1 py-2 items-center border-b-2 ${activeTab === tab ? 'border-indigo-600' : 'border-transparent'}`}
-                        >
-                            <StyledText className={`text-sm font-medium ${activeTab === tab ? 'text-indigo-600' : 'text-gray-500'}`}>
-                                {tab}
-                            </StyledText>
-                        </StyledTouchableOpacity>
-                    ))}
-                </StyledView>
             </StyledView>
 
             <StyledScrollView className="flex-1" contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}>
-                {activeTab === '뉴스레터' ? (
-                    <>
-                        {/* Today's News Summary */}
-                        <StyledView className="px-4 py-6 bg-indigo-50 border-b border-gray-100">
-                            <StyledText className="text-lg font-bold text-gray-900 mb-2">오늘의 뉴스 요약</StyledText>
-                            <StyledText className="text-sm text-gray-700 leading-6">
-                                오늘 시장에서는 올림픽 같은 대형 이벤트의 성장 효과부터 빅테크의 유럽 독점 우려까지
-                                관심이 높아지고 있어요! 뉴욕증시 하락에도 커지고 있고요!
-                            </StyledText>
-                            <StyledText className="text-xs text-indigo-600 mt-3 font-semibold">
-                                아래로 기술주 중심 변동성도 커지고 있고고!
-                            </StyledText>
-                        </StyledView>
+                {/* Today's News Summary */}
+                <StyledView className="px-4 py-6 bg-indigo-50 border-b border-gray-100">
+                    <StyledText className="text-lg font-bold text-gray-900 mb-2">오늘의 뉴스 요약</StyledText>
+                    <StyledText className="text-sm text-gray-700 leading-6">
+                        오늘 시장에서는 올림픽 같은 대형 이벤트의 성장 효과부터 빅테크의 유럽 독점 우려까지
+                        관심이 높아지고 있어요! 뉴욕증시 하락에도 커지고 있고요!
+                    </StyledText>
+                    <StyledText className="text-xs text-indigo-600 mt-3 font-semibold">
+                        아래로 기술주 중심 변동성도 커지고 있고고!
+                    </StyledText>
+                </StyledView>
 
-                        {/* Related News */}
-                        <StyledView className="px-4 py-4">
-                            <StyledText className="text-base font-bold text-gray-900 mb-4">관련 뉴스</StyledText>
-                            <StyledView className="flex-row flex-wrap justify-between">
-                                {newsLoading ? (
-                                    Array(4).fill(0).map((_, i) => (
-                                        <StyledView key={i} className="w-[48%] mb-4 space-y-2">
-                                            <Skeleton className="aspect-video w-full rounded-lg" />
-                                            <Skeleton className="h-4 w-full" />
-                                            <Skeleton className="h-3 w-20" />
-                                        </StyledView>
-                                    ))
-                                ) : (
-                                    newsList.slice(0, 4).map((news) => (
-                                        <StyledView key={news.id} className="w-[48%]">
-                                            <NewsCard news={news} />
-                                        </StyledView>
-                                    ))
-                                )}
-                            </StyledView>
-                        </StyledView>
-
-                        {/* Stock Ticker */}
-                    </>
-                ) : (
-                    <>
-                        {/* Community Posts */}
-                        <StyledView className="px-4 py-4 pb-20">
-                            <StyledText className="text-base font-bold text-gray-900 mb-4">인기 커뮤니티 게시글</StyledText>
-                            {communityLoading ? (
-                                <StyledView className="space-y-2">
-                                    {Array(5).fill(0).map((_, i) => (
-                                        <StyledView key={i} className="p-4 border border-gray-200 rounded-lg mb-2">
-                                            <Skeleton className="h-4 w-40 mb-2" />
-                                            <Skeleton className="h-5 w-full mb-2" />
-                                            <Skeleton className="h-3 w-32" />
-                                        </StyledView>
-                                    ))}
+                {/* Related News */}
+                <StyledView className="px-4 py-4">
+                    <StyledText className="text-base font-bold text-gray-900 mb-4">관련 뉴스</StyledText>
+                    <StyledView className="flex-row flex-wrap justify-between">
+                        {newsLoading ? (
+                            Array(4).fill(0).map((_, i) => (
+                                <StyledView key={i} className="w-[48%] mb-4 space-y-2">
+                                    <Skeleton className="aspect-video w-full rounded-lg" />
+                                    <Skeleton className="h-4 w-full" />
+                                    <Skeleton className="h-3 w-20" />
                                 </StyledView>
-                            ) : (
-                                <StyledView>
-                                    {popularPosts.map((post) => (
-                                        <CommunityPostCard key={post.id} post={post} />
-                                    ))}
+                            ))
+                        ) : (
+                            newsList.slice(0, 4).map((news) => (
+                                <StyledView key={news.id} className="w-[48%]">
+                                    <NewsCard news={news} />
                                 </StyledView>
-                            )}
-                        </StyledView>
-                    </>
-                )}
+                            ))
+                        )}
+                    </StyledView>
+                </StyledView>
             </StyledScrollView>
 
             {showIndexBar && (
@@ -249,16 +182,6 @@ export default function Home() {
                 </View>
             )}
 
-            {/* Floating Action Button */}
-            {activeTab === '인기글' && (
-                <StyledTouchableOpacity
-                    onPress={() => router.push('/write-post')}
-                    className="absolute right-6 w-14 h-14 rounded-full bg-indigo-600 items-center justify-center shadow-lg z-50"
-                    style={{ bottom: fabBottom }}
-                >
-                    <Edit3 size={24} color="white" />
-                </StyledTouchableOpacity>
-            )}
             <MarketIndexGuideModal
                 visible={showIndexModal}
                 onClose={() => setShowIndexModal(false)}

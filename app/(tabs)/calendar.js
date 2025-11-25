@@ -19,6 +19,7 @@ import {
 import { ko } from "date-fns/locale";
 import StockTicker from "../../components/StockTicker";
 import { Button } from "../../components/ui/button";
+import { useAdminClaims } from "../../hooks/useAdminClaims";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 const StyledView = styled(View);
@@ -39,13 +40,13 @@ const resolveEventDate = (value) => {
     return new Date(value);
 };
 
-const normalizeCategory = (value) => {
-    if (!value) return "";
-    if (value === "모둠인턴" || value === "모둠 인턴") return "인턴";
-    return value;
-};
+const normalizeCategory = (value) => (typeof value === "string" ? value.trim() : "");
 
-const getEventCategory = (event) => normalizeCategory(event.category) || "기타";
+const getEventCategory = (event) => {
+    const normalized = normalizeCategory(event.category);
+    if (event.is_personal || normalized === "마이") return "마이";
+    return "경제";
+};
 
 const fallbackEvents = [
     {
@@ -53,21 +54,21 @@ const fallbackEvents = [
         title: "FOMC 회의 결과 발표",
         description: "미국 기준금리 방향을 확인하세요.",
         date: new Date().toISOString(),
-        category: "거시",
+        category: "경제",
     },
     {
         id: "sample-2",
         title: "테슬라 실적 발표",
         description: "빅테크 실적 시즌의 포문을 엽니다.",
         date: new Date(Date.now() + 86400000 * 2).toISOString(),
-        category: "실적",
+        category: "경제",
     },
     {
         id: "sample-3",
         title: "대한민국 소비자물가 지수",
         description: "물가 지표 발표일을 체크하세요.",
         date: new Date(Date.now() + 86400000 * 5).toISOString(),
-        category: "물가",
+        category: "경제",
     },
 ];
 
@@ -88,6 +89,7 @@ export default function CalendarTab() {
     const queryClient = useQueryClient();
     const currentUser = auth.currentUser;
     const userId = currentUser?.uid;
+    const { isAdmin } = useAdminClaims();
 
     const { data: events = [], isLoading } = useQuery({
         queryKey: ["calendar-events"],
@@ -139,12 +141,8 @@ export default function CalendarTab() {
     }, [selectedDate, allEvents, userId]);
 
     const eventColors = {
-        경제: { badge: "bg-orange-100 text-orange-800 border border-orange-200", dot: "bg-orange-500" },
-        공모전: { badge: "bg-pink-100 text-pink-800 border border-pink-200", dot: "bg-pink-500" },
-        인턴: { badge: "bg-purple-100 text-purple-800 border border-purple-200", dot: "bg-purple-500" },
         마이: { badge: "bg-blue-100 text-blue-800 border border-blue-200", dot: "bg-blue-500" },
-        금융연수: { badge: "bg-green-100 text-green-800 border border-green-200", dot: "bg-green-500" },
-        오픈콘텐츠: { badge: "bg-indigo-100 text-indigo-800 border border-indigo-200", dot: "bg-indigo-500" },
+        경제: { badge: "bg-orange-100 text-orange-800 border border-orange-200", dot: "bg-orange-500" },
     };
     const categoryOptions = Object.keys(eventColors);
 
@@ -193,13 +191,17 @@ export default function CalendarTab() {
         setNewEventCategory("마이");
     };
 
-    const handleSavePersonalEvent = async () => {
+    const handleSaveEvent = async () => {
         if (!userId) {
             Alert.alert("로그인 필요", "내 일정을 추가하려면 로그인해주세요.");
             return;
         }
         if (!newEventTitle.trim()) {
             Alert.alert("입력 확인", "제목을 입력해주세요.");
+            return;
+        }
+        if (newEventCategory === "경제" && !isAdmin) {
+            Alert.alert("권한 필요", "경제 카테고리 이벤트는 관리자만 등록할 수 있습니다.");
             return;
         }
         const baseDate = newEventDate || selectedDate || new Date();
@@ -224,16 +226,21 @@ export default function CalendarTab() {
             finalDate.setHours(9, 0, 0, 0);
         }
 
+        const isPersonal = newEventCategory === "마이";
+        const resolvedCategory = isPersonal ? "마이" : "경제";
+
         try {
             setIsSavingEvent(true);
-            const docId = `saved-${userId}-${finalDate.getTime()}-${Date.now()}`;
+            const docId = isPersonal
+                ? `saved-${userId}-${finalDate.getTime()}-${Date.now()}`
+                : `global-${finalDate.getTime()}-${Date.now()}`;
             await setDoc(doc(db, "calendar_events", docId), {
                 title: newEventTitle.trim(),
                 description: newEventDescription.trim() || "",
                 date: Timestamp.fromDate(finalDate),
-                category: newEventCategory || "마이",
-                is_personal: true,
-                user_id: userId,
+                category: resolvedCategory,
+                is_personal: isPersonal,
+                user_id: isPersonal ? userId : null,
                 created_by: currentUser?.email || "",
                 created_at: Timestamp.fromDate(new Date()),
             });
@@ -539,35 +546,48 @@ export default function CalendarTab() {
                         </StyledView>
                         <StyledView className="mb-4">
                             <StyledText className="text-xs text-gray-500 mb-1">카테고리</StyledText>
-                            <StyledView className="flex-row flex-wrap">
-                                {categoryOptions.map((option) => {
-                                    const selected = newEventCategory === option;
-                                    return (
-                                        <StyledTouchableOpacity
-                                            key={option}
-                                            className={`flex-row items-center px-3 py-1.5 rounded-full mr-2 mb-2 border ${
-                                                selected ? "bg-indigo-50 border-indigo-200" : "bg-white border-gray-200"
+                        <StyledView className="flex-row flex-wrap">
+                            {categoryOptions.map((option) => {
+                                const selected = newEventCategory === option;
+                                const disabled = option === "경제" && !isAdmin;
+                                return (
+                                    <StyledTouchableOpacity
+                                        key={option}
+                                        disabled={disabled}
+                                        className={`flex-row items-center px-3 py-1.5 rounded-full mr-2 mb-2 border ${
+                                            selected ? "bg-indigo-50 border-indigo-200" : "bg-white border-gray-200"
+                                        } ${disabled ? "opacity-50" : ""}`}
+                                        onPress={() => {
+                                            if (disabled) {
+                                                Alert.alert("권한 필요", "경제 이벤트는 관리자만 추가할 수 있습니다.");
+                                                return;
+                                            }
+                                            setNewEventCategory(option);
+                                        }}
+                                    >
+                                        <StyledView className={`h-2 w-2 rounded-full mr-1 ${eventColors[option]?.dot || "bg-gray-400"}`} />
+                                        <StyledText
+                                            className={`text-xs font-medium ${
+                                                selected ? "text-indigo-700" : "text-gray-600"
                                             }`}
-                                            onPress={() => setNewEventCategory(option)}
                                         >
-                                            <StyledView className={`h-2 w-2 rounded-full mr-1 ${eventColors[option]?.dot || "bg-gray-400"}`} />
-                                            <StyledText
-                                                className={`text-xs font-medium ${
-                                                    selected ? "text-indigo-700" : "text-gray-600"
-                                                }`}
-                                            >
-                                                {option}
-                                            </StyledText>
-                                        </StyledTouchableOpacity>
-                                    );
-                                })}
-                            </StyledView>
+                                            {option}
+                                        </StyledText>
+                                    </StyledTouchableOpacity>
+                                );
+                            })}
+                        </StyledView>
+                        {!isAdmin && (
+                            <StyledText className="text-[11px] text-gray-500">
+                                경제 이벤트는 관리자 계정으로만 등록할 수 있으며 모든 사용자에게 노출됩니다.
+                            </StyledText>
+                        )}
                         </StyledView>
                         <StyledView className="mb-4">
                             <StyledText className="text-xs text-gray-500 mb-1">색상 안내</StyledText>
                             <ColorLegend compact />
                         </StyledView>
-                        <Button className="rounded-full h-12" onPress={handleSavePersonalEvent} disabled={isSavingEvent}>
+                        <Button className="rounded-full h-12" onPress={handleSaveEvent} disabled={isSavingEvent}>
                             {isSavingEvent ? "저장 중..." : "일정 저장"}
                         </Button>
                     </StyledView>

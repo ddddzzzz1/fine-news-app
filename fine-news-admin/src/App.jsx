@@ -5,7 +5,7 @@ import { sanitizeContestFields, buildContestHtmlBlock } from "../../shared/conte
 const DEFAULT_CONTEST = {
     title: "",
     organizer: "",
-    category: "공모전",
+    category: "대외활동",
     start_date: "",
     end_date: "",
     image_url: "",
@@ -16,7 +16,7 @@ const DEFAULT_CONTEST = {
     benefits: "<p><strong>상금/혜택</strong>과 후속 프로그램을 안내하세요.</p>",
 };
 
-const CATEGORIES = ["공모전", "신입/인턴", "대외활동"];
+const CATEGORIES = ["대외활동", "취업", "자격증"];
 
 export default function App() {
     const [contest, setContest] = useState(DEFAULT_CONTEST);

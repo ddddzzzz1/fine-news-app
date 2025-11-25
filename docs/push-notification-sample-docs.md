@@ -38,7 +38,7 @@ Once the doc exists, the `processNotificationQueue` job (every 5 min) will pick 
 
 ---
 
-## 2. `saved_contests` Entries for Digest
+## 2. `saved_contests` Entries for Digest (대외활동/취업/자격증)
 
 Create two docs (different IDs) so `sendContestDeadlineDigest` can build a multi-item message:
 
@@ -46,7 +46,7 @@ Create two docs (different IDs) so `sendContestDeadlineDigest` can build a multi
 {
   "contest_id": "contest_demo_01",
   "user_id": "TEST_USER_UID",
-  "title": "KB 청춘 아이디어 공모전",
+  "title": "KB 청춘 아이디어 대외활동",
   "organizer": "KB금융그룹",
   "end_date": "2025-02-22T20:00:00+09:00",
   "apply_url": "https://fine.news/contests/contest_demo_01",
@@ -58,7 +58,7 @@ Create two docs (different IDs) so `sendContestDeadlineDigest` can build a multi
 {
   "contest_id": "contest_demo_02",
   "user_id": "TEST_USER_UID",
-  "title": "신한 Next Finance 챌린지",
+  "title": "신한 Next Finance 취업 부트캠프",
   "organizer": "신한은행",
   "end_date": "2025-02-22T22:00:00+09:00",
   "apply_url": "https://fine.news/contests/contest_demo_02",

@@ -17,7 +17,7 @@ import { useRouter } from "expo-router";
 import { Button } from "../components/ui/button";
 import { auth, storage, db } from "../firebaseConfig";
 import { useUserProfile } from "../lib/useUserProfile";
-import { Check, UploadCloud, Info } from "lucide-react-native";
+import { Check, UploadCloud, Info, ArrowLeft } from "lucide-react-native";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 
@@ -165,11 +165,22 @@ export default function UniversityVerificationScreen() {
 
     return (
         <StyledSafeAreaView edges={["top"]} className="flex-1 bg-white">
-            <StyledView className="px-5 py-4 border-b border-gray-100">
-                <StyledText className="text-xl font-bold text-gray-900">학생 인증</StyledText>
-                <StyledText className="text-xs text-gray-500 mt-1">
-                    학생증 사진과 정보를 제출하면 관리자가 순차적으로 검토합니다.
-                </StyledText>
+            <StyledView className="px-5 py-4 border-b border-gray-100 flex-row items-center">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full border border-gray-200 mr-3"
+                    onPress={() => router.back()}
+                    accessibilityLabel="뒤로가기"
+                >
+                    <ArrowLeft color="#111827" />
+                </Button>
+                <StyledView className="flex-1">
+                    <StyledText className="text-xl font-bold text-gray-900">학생 인증</StyledText>
+                    <StyledText className="text-xs text-gray-500 mt-1">
+                        학생증 사진과 정보를 제출하면 관리자가 순차적으로 검토합니다.
+                    </StyledText>
+                </StyledView>
             </StyledView>
 
             <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 40 }}>

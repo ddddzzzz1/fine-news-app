@@ -3,14 +3,14 @@
 _Last updated: 2025-02-21_
 
 ## Objectives
-- Give logged-in students timely “알림” about things they already care about (saved contests, calendar events, newsletter drops, community replies) without feeling spammy.
+- Give logged-in students timely “알림” about things they already care about (saved 대외활동/취업/자격증 공고, calendar events, newsletter drops, community replies) without feeling spammy.
 - Keep push logic privacy-safe: store only Expo push tokens + user-level preferences in Firestore, nothing device-specific beyond platform/model metadata for debugging.
 - Reuse Firebase Functions so that mobile engineers never have to juggle cronjobs or external queues.
 
 ## Experience Pillars
 1. **Low-friction opt-in** – first app launch gently triggers the OS permission prompt once, then logged-in users see the 홈 탭 종 bell CTA for any follow-up consent or troubleshooting.
-2. **Topic-based preferences** – the app stores toggles for `newsletters`, `contests`, `community`, and `reminders` (saved contests + personal calendar) so backend jobs can respect what the user asked for.
-3. **Digest-first** – default is 1 message per topic per day; Cloud Functions aggregate multiple items into a single payload (ex: “3개의 마감 임박 공모전”).
+2. **Topic-based preferences** – the app stores toggles for `newsletters`, `contests`, `community`, and `reminders` (saved 공고 + personal calendar) so backend jobs can respect what the user asked for.
+3. **Digest-first** – default is 1 message per topic per day; Cloud Functions aggregate multiple items into a single payload (ex: “3개의 마감 임박 대외활동/취업/자격증 공고”).
 4. **Quiet Hours** – optional (defaults to 23:00–08:00 Asia/Seoul). Scheduled jobs skip users inside their quiet window.
 
 ## Data Model
@@ -43,7 +43,7 @@ The new `processNotificationQueue` function (see below) consumes these docs, res
 ## Firebase Functions to Add
 1. **`dispatchExpoNotifications(messages)` helper** – accepts an array of Expo message payloads and handles chunking + retries using the Expo push API.
 2. **`processNotificationQueue` (pub/sub, every 5 min)** – scans `notification_requests` where `send_after <= now`, groups recipients by topic, enforces quiet hours, and dispatches push payloads. Ideal for newsletter drops and admin-triggered blasts.
-3. **`sendContestDeadlineDigest` (pub/sub, daily 09:00 Asia/Seoul)** – queries `saved_contests` where `end_date` happens within the next 24h, builds per-user digests (only if `preferences.reminders === true`), and reuses `dispatchExpoNotifications`.
+3. **`sendContestDeadlineDigest` (pub/sub, daily 09:00 Asia/Seoul)** – queries `saved_contests` where `end_date` happens within the next 24h, builds per-user digests (only if `preferences.reminders === true`), and reuses `dispatchExpoNotifications`. Titles copy the stored category (대외활동/취업/자격증) so 메시지와 탭 필터가 일치합니다.
 4. **`cleanupPushTokens` (pub/sub, daily)** – optional, removes expired Expo tokens reported by the push API from `user_push_settings`.
 
 ## Client Work Breakdown

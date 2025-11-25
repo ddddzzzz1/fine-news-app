@@ -149,12 +149,43 @@ Lucide Icons
 <td width="50%">
 <h3>⚙️ 설정/관리자 도구</h3>
 <ul>
-<li>새 설정 화면에서 계정/보안/데이터 제어</li>
+<li>새 설정 화면에서 계정/보안/데이터 제어 + 계정 완전 삭제</li>
+<li>닉네임 편집 및 이메일/비밀번호 로그인 이용자를 위한 재설정 플로우</li>
 <li>관리자 계정은 앱에서 “신고 관리” 진입 가능</li>
 </ul>
 </td>
 </tr>
+<tr>
+<td width="50%">
+<h3>🗓 마이 캘린더</h3>
+<ul>
+<li>캘린더 탭에서 개인 일정 생성</li>
+<li>Day 상세/상세 카드에서 내 일정 삭제 가능</li>
+</ul>
+</td>
+<td width="50%">
+<h3>📱 전용 UI</h3>
+<ul>
+<li>캘린더 Day 화면과 탭 상세에서 동일한 이벤트 카드 공유</li>
+<li>삭제 시 Firestore 문서를 즉시 제거하고 리스트 자동 새로고침</li>
+</ul>
+</td>
+</tr>
 </table>
+
+<h3>💬 커뮤니티 카테고리 경험</h3>
+<ul>
+<li>커뮤니티 탭 상단에 <strong>인기글 · 자유 · 취업 · 모집 · 스터디</strong> 칩을 고정해 원하는 주제를 즉시 필터링할 수 있습니다.</li>
+<li><code>like_count</code>가 5회를 초과한 게시글만 “인기글” 탭에 올라가며, 커뮤니티 탭에서 해당 카테고리를 고르면 좋아요 수 기준으로 재정렬됩니다.</li>
+<li>홈 탭은 이제 뉴스 컨텐츠에만 집중하며, 인기 커뮤니티 피드는 커뮤니티 화면으로 완전히 이동했습니다.</li>
+</ul>
+
+<h3>🎯 대외활동 · 취업 · 자격증 공고</h3>
+<ul>
+<li>`공모전` 탭은 이제 <strong>대외활동 · 취업 · 자격증</strong> 세 가지 카테고리로 구분된 칩을 제공합니다.</li>
+<li>Firestore `contests`와 `contest_details` 문서는 위 세 값 중 하나만 허용하며, 잘못된 라벨은 UI에 노출되지 않습니다.</li>
+<li>샘플 데이터를 새 카테고리로 채우려면 `cd fine-news-app && node scripts/seedAll.js` 또는 `node scripts/seedContests.js`를 실행하세요.</li>
+</ul>
 
 <br />
 
@@ -254,7 +285,7 @@ user_profiles (인증 완료/대기 상태의 테스트 유저)
    - 세부 스키마는 `fire_data.md`와 `docs/push-notification-sample-docs.md`를 참고해 시드 데이터를 작성하세요.
 2. **보안 규칙/Functions 배포**
    - `firestore.rules`에 새 컬렉션 접근 제어를 추가한 뒤 `firebase deploy --only firestore:rules`.
-   - `firebase deploy --only functions:processNotificationQueue,functions:sendContestDeadlineDigest,functions:cleanupPushTokens`로 최신 Functions 반영.
+   - `firebase deploy --only functions:processNotificationQueue,functions:sendContestDeadlineDigest,functions:cleanupPushTokens,functions:closeAccount`로 최신 Functions 반영.
 3. **실기기 테스트**
    - 실제 디바이스에서 Expo Go(또는 Dev Client)로 로그인 → 마이 탭 → “알림 설정”에서 권한 허용 및 토글 상태 확인.
 4. **샘플 알림 발송**
@@ -262,6 +293,24 @@ user_profiles (인증 완료/대기 상태의 테스트 유저)
    - `processNotificationQueue`가 5분 이내 큐를 처리하며, 필요 시 `firebase functions:shell`에서 수동 실행 가능합니다.
 5. **운영 가이드**
    - `adime_guide.md`에 알림 운영/모니터링/퀘치 절차가 정리되어 있으니 관리자 온보딩 시 참고하세요.
+
+<br />
+
+🗑 **계정 삭제 (Close Account)**
+
+사용자는 설정 화면의 “계정 완전 삭제” 버튼을 눌러 스스로 탈퇴할 수 있습니다. 이 기능은 Firebase Functions의 `closeAccount` callable을 호출하며 아래 리소스를 정리합니다.
+
+- `user_profiles/{uid}` 문서 + 업로드된 `student_id_storage_folder`(또는 `student_id_storage_path`) 내 이미지 파일
+- `user_push_settings/{uid}`와 저장된 Expo 토큰
+- 사용자가 만든 `saved_contests`, 개인 `calendar_events` (`is_personal: true`), `community_posts` 및 해당 첨부 이미지(`image_meta.storage_path`)
+- Firebase Auth 사용자 레코드
+
+구성 방법:
+
+1. Functions 배포 시 `firebase deploy --only functions:processNotificationQueue,functions:sendContestDeadlineDigest,functions:cleanupPushTokens,functions:closeAccount` 명령을 사용하거나 `functions:closeAccount`를 별도로 포함합니다.
+2. `user_profiles` 제출 로직이 `student_id_storage_path`와 `student_id_storage_folder`를 저장해야 Storage 정리가 가능합니다. (이미 `university-verification.js`에 반영되어 있음)
+3. 커뮤니티 글/이미지 업로드 시 `image_meta.storage_path`를 기록해야 합니다. 기존 업로더(`write-post.js`)는 기본적으로 저장 중입니다.
+4. 새 기능 배포 후 실제 기기에서 테스트 계정을 생성 → 학생증 업로드 → 테스트 데이터를 만들어둔 뒤 계정 삭제가 모든 문서를 제거하는지 Firestore/Storage Console에서 확인하세요.
 
 <br />
 
@@ -348,3 +397,12 @@ node scripts/manageAdminClaims.js fine3410@gmail.com revoke
 ```
 
 4. admin 계정으로 앱에 로그인하면 마이 탭에 `신고 관리` 버튼이 나타나며, `/admin/reports` 화면에서 신고 상태를 `검토 완료`/`조치 완료`로 업데이트하거나 해당 게시글/댓글을 즉시 삭제할 수 있습니다.
+
+<br />
+
+🗓 마이 이벤트 관리
+
+1. 캘린더 탭 → “내 일정 추가” 버튼을 눌러 제목/설명/시간을 입력하면 `calendar_events`에 `category: "마이"`, `is_personal: true`, `user_id`, `created_at`이 저장됩니다.
+2. 날짜를 길게 눌러 열 수 있는 `/calendar-day/[date]` 화면이나 탭 내 상세 카드에서 개인 일정에만 `삭제` 버튼이 노출됩니다.
+3. 삭제 시 Firestore 문서가 제거되고 React Query의 `calendar-events` 캐시가 무효화되어 목록이 자동 갱신됩니다.
+4. 관리자 계정은 동일한 화면에서 `경제` 카테고리를 선택해 모든 사용자에게 노출되는 이벤트를 등록할 수 있습니다.

@@ -17,42 +17,42 @@ const StyledTouchableOpacity = styled(TouchableOpacity);
 const fallbackContests = [
     {
         id: "contest-1",
-        title: "대학생 ESG 콘텐츠 공모전",
+        title: "대학생 ESG 콘텐츠 챌린지",
         organizer: "FINE NEWS",
         end_date: new Date(Date.now() + 86400000 * 12).toISOString(),
         image_url: null,
-        category: "공모전",
-        description: "ESG 주제로 콘텐츠를 제작하는 공모전입니다.",
+        category: "대외활동",
+        description: "ESG 주제로 콘텐츠를 제작하고 멘토링을 받는 대외활동입니다.",
         start_date: new Date().toISOString(),
         apply_url: "https://example.com/contest-1",
     },
     {
         id: "contest-2",
-        title: "핀테크 아이디어 챌린지",
+        title: "스타트업 채용 부트캠프",
         organizer: "핀테크 협회",
         end_date: new Date(Date.now() + 86400000 * 25).toISOString(),
         image_url: null,
-        category: "대외활동",
-        description: "핀테크 혁신 아이디어를 모집합니다.",
+        category: "취업",
+        description: "현직자 특강과 연계 채용이 포함된 취업 프로그램입니다.",
         start_date: new Date().toISOString(),
         apply_url: "https://example.com/contest-2",
     },
     {
         id: "contest-3",
-        title: "스타트업 신입/인턴 채용",
-        organizer: "Fine Startup",
+        title: "PM 실무 자격증 집중 과정",
+        organizer: "Fine Academy",
         end_date: new Date(Date.now() + 86400000 * 30).toISOString(),
         image_url: null,
-        category: "신입/인턴",
-        description: "스타트업에서 함께 성장할 인턴을 찾습니다.",
+        category: "자격증",
+        description: "3주간 실무 과제를 수행하며 자격증을 준비합니다.",
         start_date: new Date().toISOString(),
         apply_url: "https://example.com/contest-3",
     },
 ];
 
 export default function ContestsTab() {
-    const categories = ["공모전", "신입/인턴", "대외활동"];
-    const [activeCategory, setActiveCategory] = useState("공모전");
+    const categories = ["대외활동", "취업", "자격증"];
+    const [activeCategory, setActiveCategory] = useState(categories[0]);
 
     const { data: contests = [], isLoading } = useQuery({
         queryKey: ["contests"],
@@ -71,13 +71,13 @@ export default function ContestsTab() {
 
     const displayContests = contests.length ? contests : fallbackContests;
     const filteredContests = displayContests.filter(
-        (contest) => (contest.category || "공모전") === activeCategory
+        (contest) => (contest.category || categories[0]) === activeCategory
     );
 
     return (
         <StyledSafeAreaView edges={["top"]} className="flex-1 bg-white">
             <StyledView className="px-4 py-4 border-b border-gray-100">
-                <StyledText className="text-xl font-bold text-gray-900 mb-1">공모전 & 대외활동</StyledText>
+                <StyledText className="text-xl font-bold text-gray-900 mb-1">대외활동 · 취업 · 자격증</StyledText>
                 <StyledText className="text-sm text-gray-500">마감 임박 순으로 정리했어요</StyledText>
                 <StyledView className="flex-row mt-4 border-b border-gray-200">
                     {categories.map((category) => (
@@ -117,16 +117,14 @@ export default function ContestsTab() {
                     filteredContests.map((contest) => <ContestCard key={contest.id} contest={contest} />)
                 ) : (
                     <StyledView className="py-10 items-center">
-                        <StyledText className="text-sm text-gray-500">
-                            선택한 카테고리에 해당하는 공모전이 없습니다.
-                        </StyledText>
+                        <StyledText className="text-sm text-gray-500">선택한 카테고리에 해당하는 공고가 없습니다.</StyledText>
                     </StyledView>
                 )}
 
                 {!contests.length && (
                     <StyledView className="px-4 py-3 rounded-lg bg-amber-50 border border-amber-100 mt-4">
                         <StyledText className="text-xs text-amber-700">
-                            Firestore의 `contests` 컬렉션을 채우면 실제 공모전 정보가 표시됩니다.
+                            Firestore의 `contests` 컬렉션을 채우면 실제 공고 정보가 표시됩니다.
                         </StyledText>
                     </StyledView>
                 )}

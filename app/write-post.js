@@ -163,7 +163,6 @@ export default function WritePost() {
             });
 
             await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ["home-community-posts"] }),
                 queryClient.invalidateQueries({ queryKey: ["tab-community-posts"] }),
             ]);
 

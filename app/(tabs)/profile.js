@@ -35,6 +35,7 @@ export default function Profile() {
     const profile = userProfile || FALLBACK_PROFILE;
 
     const displayName =
+        (profile.nickname && profile.nickname.trim()) ||
         profile.korean_name ||
         profile.english_name ||
         currentUser?.displayName ||

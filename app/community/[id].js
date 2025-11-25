@@ -103,7 +103,6 @@ export default function CommunityDetail() {
             }
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: ["community-post", post.id] }),
-                queryClient.invalidateQueries({ queryKey: ["home-community-posts"] }),
                 queryClient.invalidateQueries({ queryKey: ["tab-community-posts"] }),
             ]);
         } catch (error) {
@@ -122,7 +121,6 @@ export default function CommunityDetail() {
                     try {
                         await deleteDoc(doc(db, "community_posts", post.id));
                         await Promise.all([
-                            queryClient.invalidateQueries({ queryKey: ["home-community-posts"] }),
                             queryClient.invalidateQueries({ queryKey: ["tab-community-posts"] }),
                         ]);
                         router.back();
@@ -187,7 +185,6 @@ export default function CommunityDetail() {
             setComment("");
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: ["community-post", post.id] }),
-                queryClient.invalidateQueries({ queryKey: ["home-community-posts"] }),
                 queryClient.invalidateQueries({ queryKey: ["tab-community-posts"] }),
             ]);
         } catch (error) {
@@ -301,7 +298,6 @@ export default function CommunityDetail() {
                                         });
                                         await Promise.all([
                                             queryClient.invalidateQueries({ queryKey: ["community-post", post.id] }),
-                                            queryClient.invalidateQueries({ queryKey: ["home-community-posts"] }),
                                             queryClient.invalidateQueries({ queryKey: ["tab-community-posts"] }),
                                         ]);
                                         setIsPostEditing(false);
@@ -484,7 +480,6 @@ export default function CommunityDetail() {
                                                 });
                                                 await Promise.all([
                                                     queryClient.invalidateQueries({ queryKey: ["community-post", post.id] }),
-                                                    queryClient.invalidateQueries({ queryKey: ["home-community-posts"] }),
                                                     queryClient.invalidateQueries({ queryKey: ["tab-community-posts"] }),
                                                 ]);
                                             } catch (error) {

@@ -1,32 +1,32 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { useRouter } from "expo-router";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "../firebaseConfig";
+import { httpsCallable } from "firebase/functions";
+import { auth, functions } from "../firebaseConfig";
 import { useUserProfile } from "../lib/useUserProfile";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import {
     Bell,
     ChevronLeft,
-    Download,
     GraduationCap,
     Lock,
     Mail,
-    RefreshCcw,
+    MonitorSmartphone,
+    Moon,
     ShieldCheck,
+    SunMedium,
     Trash2,
+    User,
 } from "lucide-react-native";
+import { useThemeMode } from "../context/ThemeContext";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 const StyledView = styled(View);
 const StyledText = styled(Text);
 const StyledTouchableOpacity = styled(TouchableOpacity);
-
-const SUPPORT_MESSAGE =
-    "팀에 직접 연락해 주세요. Contact 정보는 README의 문의하기 섹션을 참고하면 빠르게 확인할 수 있습니다.";
 
 const statusMetaMap = {
     verified: { text: "학생 인증 완료", badge: "bg-green-50 text-green-700 border-0" },
@@ -34,6 +34,17 @@ const statusMetaMap = {
     rejected: { text: "재업로드 필요", badge: "bg-red-50 text-red-600 border-0" },
     unverified: { text: "학생 인증 필요", badge: "bg-gray-100 text-gray-500 border-0" },
 };
+
+const THEME_OPTIONS = [
+    {
+        value: "system",
+        label: "시스템 기본",
+        description: "디바이스 설정에 맞춰 자동 전환됩니다.",
+        icon: MonitorSmartphone,
+    },
+    { value: "light", label: "라이트 모드", description: "항상 밝은 배경으로 표시합니다.", icon: SunMedium },
+    { value: "dark", label: "다크 모드", description: "어두운 배경으로 눈부심을 줄여줍니다.", icon: Moon },
+];
 
 function InfoRow({ icon: Icon, label, value, badgeClassName }) {
     return (
@@ -74,6 +85,38 @@ function ActionRow({ icon: Icon, title, description, onPress, disabled }) {
     );
 }
 
+function ThemeOptionRow({ option, selected, onSelect, disabled }) {
+    const Icon = option.icon;
+    return (
+        <StyledTouchableOpacity
+            onPress={onSelect}
+            disabled={disabled}
+            className={`border rounded-2xl px-4 py-3 flex-row items-center justify-between ${
+                selected ? "border-indigo-500 bg-indigo-50" : "border-gray-200 bg-white"
+            } ${disabled ? "opacity-50" : ""}`}
+        >
+            <StyledView className="flex-row items-center space-x-3 flex-1">
+                <StyledView
+                    className={`w-10 h-10 rounded-2xl items-center justify-center ${
+                        selected ? "bg-white" : "bg-gray-100"
+                    }`}
+                >
+                    <Icon size={18} color={selected ? "#4338ca" : "#4b5563"} />
+                </StyledView>
+                <StyledView className="flex-1">
+                    <StyledText className={`text-sm font-semibold ${selected ? "text-indigo-900" : "text-gray-900"}`}>
+                        {option.label}
+                    </StyledText>
+                    <StyledText className="text-xs text-gray-500 mt-0.5">{option.description}</StyledText>
+                </StyledView>
+            </StyledView>
+            <StyledText className={`text-xs font-semibold ${selected ? "text-indigo-700" : "text-gray-400"}`}>
+                {selected ? "선택됨" : "선택"}
+            </StyledText>
+        </StyledTouchableOpacity>
+    );
+}
+
 export default function SettingsScreen() {
     const router = useRouter();
     const currentUser = auth.currentUser;
@@ -81,9 +124,18 @@ export default function SettingsScreen() {
     const email = currentUser?.email;
     const { data: userProfile } = useUserProfile(userId);
     const profile = userProfile || {};
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+    const deleteAccountCallable = useMemo(() => httpsCallable(functions, "closeAccount"), [functions]);
+    const { theme: themePreference, setTheme, isReady: themeReady } = useThemeMode();
 
     const verificationStatus = profile.verification_status || "unverified";
     const statusMeta = statusMetaMap[verificationStatus] || statusMetaMap.unverified;
+    const nickname =
+        (profile.nickname && profile.nickname.trim()) ||
+        profile.korean_name ||
+        profile.english_name ||
+        currentUser?.displayName ||
+        (email ? email.split("@")[0] : "-");
     const campusName = profile.university_name || currentUser?.photoURL || "미등록";
 
     const rejectionReason = profile.rejection_reason || profile.verification_feedback || "";
@@ -93,7 +145,7 @@ export default function SettingsScreen() {
         return providers.some((provider) => provider.providerId === "password");
     }, [currentUser]);
 
-    const handlePasswordReset = async () => {
+    const handlePasswordReset = () => {
         if (!email) {
             Alert.alert("이메일 확인 필요", "비밀번호를 재설정하려면 로그인한 계정의 이메일이 필요합니다.");
             return;
@@ -102,29 +154,63 @@ export default function SettingsScreen() {
             Alert.alert("연동된 로그인", "Google 등 외부 계정으로 로그인한 경우 해당 서비스에서 비밀번호를 변경해야 합니다.");
             return;
         }
+        router.push("/account-password");
+    };
+
+    const runAccountDeletion = async () => {
+        if (!currentUser) return;
+        setIsDeletingAccount(true);
         try {
-            await sendPasswordResetEmail(auth, email);
-            Alert.alert("이메일 전송 완료", `${email} 주소로 비밀번호 재설정 링크를 보냈습니다.`);
+            await deleteAccountCallable();
+            Alert.alert("삭제 완료", "계정과 개인 데이터가 삭제되었습니다.", [
+                {
+                    text: "확인",
+                    onPress: () => router.replace("/login"),
+                },
+            ]);
         } catch (error) {
-            console.log("Password reset error", error);
-            Alert.alert("요청 실패", "잠시 후 다시 시도하거나 관리자에게 문의해 주세요.");
+            console.log("Account deletion failed", error);
+            const errorCode = error?.code || "unknown";
+            if (errorCode === "functions/unauthenticated") {
+                Alert.alert("로그인 필요", "계정을 삭제하려면 다시 로그인해주세요.", [
+                    {
+                        text: "확인",
+                        onPress: () => router.replace("/login"),
+                    },
+                ]);
+            } else {
+                Alert.alert("삭제 실패", "계정을 삭제하지 못했습니다. 잠시 후 다시 시도해주세요.");
+            }
+        } finally {
+            setIsDeletingAccount(false);
         }
     };
 
-    const handleGoogleManage = () => {
-        Alert.alert("연동 정보", "Google 로그인 연동은 추후 계정 관리 페이지에서 제공될 예정입니다.");
-    };
-
-    const handleDownloadData = () => {
-        Alert.alert("데이터 다운로드 요청", SUPPORT_MESSAGE);
-    };
-
     const handleAccountDeletion = () => {
+        if (!currentUser) {
+            Alert.alert("로그인 필요", "계정을 삭제하려면 먼저 로그인해주세요.");
+            return;
+        }
+        if (isDeletingAccount) {
+            return;
+        }
         Alert.alert(
-            "계정 삭제 요청",
-            "계정을 완전히 삭제하려면 고객지원에 요청서를 보내야 합니다. Contact 정보를 참고해 주세요."
+            "계정을 삭제할까요?",
+            "학생증 인증 자료, 저장한 공고, 개인 일정, 커뮤니티 글이 모두 삭제되며 되돌릴 수 없습니다.",
+            [
+                { text: "취소", style: "cancel" },
+                { text: "삭제", style: "destructive", onPress: runAccountDeletion },
+            ]
         );
     };
+
+    const handleThemeSelect = useCallback(
+        (value) => {
+            if (!themeReady) return;
+            setTheme(value);
+        },
+        [setTheme, themeReady]
+    );
 
     if (!currentUser) {
         return (
@@ -153,6 +239,7 @@ export default function SettingsScreen() {
             <StyledView className="flex-1 px-4 py-4 space-y-5">
                 <StyledView className="bg-white rounded-2xl px-4 py-5 shadow-sm border border-gray-100">
                     <StyledText className="text-base font-semibold text-gray-900 mb-4">계정 & 인증</StyledText>
+                    <InfoRow icon={User} label="닉네임" value={nickname || "-"} />
                     <InfoRow icon={Mail} label="이메일" value={email || "-"} />
                     <InfoRow icon={GraduationCap} label="소속 캠퍼스" value={campusName} />
                     <InfoRow
@@ -189,30 +276,53 @@ export default function SettingsScreen() {
                 <StyledView className="bg-white rounded-2xl px-4 py-5 shadow-sm border border-gray-100">
                     <StyledText className="text-base font-semibold text-gray-900 mb-4">보안 & 데이터 컨트롤</StyledText>
                     <ActionRow
+                        icon={User}
+                        title="닉네임 변경"
+                        description="마이 탭과 커뮤니티에 노출됩니다."
+                        onPress={() => router.push("/account-nickname")}
+                    />
+                    <ActionRow
                         icon={Lock}
                         title="비밀번호 변경"
-                        description="재설정 링크를 이메일로 전송합니다."
+                        description="새 비밀번호 설정 또는 재설정 메일 발송"
                         onPress={handlePasswordReset}
                         disabled={!email}
                     />
                     <ActionRow
-                        icon={RefreshCcw}
-                        title="Google 연동 관리"
-                        description="연동된 로그인 공급자를 확인합니다."
-                        onPress={handleGoogleManage}
-                    />
-                    <ActionRow
-                        icon={Download}
-                        title="데이터 다운로드"
-                        description="개인 데이터 사본 요청"
-                        onPress={handleDownloadData}
-                    />
-                    <ActionRow
                         icon={Trash2}
-                        title="계정 삭제 요청"
-                        description="완전 삭제를 요청하려면 지원팀에 연락하세요."
+                        title="계정 완전 삭제"
+                        description={
+                            isDeletingAccount
+                                ? "계정을 삭제하는 중입니다..."
+                                : "학생증 인증, 저장한 공고, 개인 일정, 커뮤니티 글이 즉시 삭제됩니다."
+                        }
                         onPress={handleAccountDeletion}
+                        disabled={isDeletingAccount}
                     />
+                </StyledView>
+
+                <StyledView className="bg-white rounded-2xl px-4 py-5 shadow-sm border border-gray-100">
+                    <StyledView className="flex-row items-center justify-between mb-4">
+                        <StyledView>
+                            <StyledText className="text-base font-semibold text-gray-900">화면 모드</StyledText>
+                            <StyledText className="text-xs text-gray-500 mt-1">
+                                라이트/다크 모드가 앱 전역에 적용됩니다.
+                            </StyledText>
+                        </StyledView>
+                        {!themeReady && <StyledText className="text-xs text-gray-400">불러오는 중...</StyledText>}
+                    </StyledView>
+
+                    <StyledView className="space-y-3">
+                        {THEME_OPTIONS.map((option) => (
+                            <ThemeOptionRow
+                                key={option.value}
+                                option={option}
+                                selected={themePreference === option.value}
+                                onSelect={() => handleThemeSelect(option.value)}
+                                disabled={!themeReady}
+                            />
+                        ))}
+                    </StyledView>
                 </StyledView>
 
                 <StyledView className="bg-white rounded-2xl px-4 py-5 shadow-sm border border-gray-100">

@@ -29,17 +29,14 @@ const fallbackEvents = [
 const categorySections = [
     { key: "마이", label: "마이 이벤트" },
     { key: "경제", label: "경제 이벤트" },
-    { key: "금융연수", label: "금융 이벤트" },
-    { key: "공모전", label: "공모전" },
-    { key: "대외활동", label: "대외활동" },
-    { key: "오픈콘텐츠", label: "오픈 콘텐츠" },
-    { key: "인턴", label: "인턴" },
 ];
 
-const normalizeCategory = (value) => {
-    if (!value) return "";
-    if (value === "모둠인턴" || value === "모둠 인턴") return "인턴";
-    return value;
+const normalizeCategory = (value) => (typeof value === "string" ? value.trim() : "");
+
+const getEventCategory = (event) => {
+    const normalized = normalizeCategory(event.category);
+    if (event.is_personal || normalized === "마이") return "마이";
+    return "경제";
 };
 
 const resolveEventDate = (value) => {
@@ -91,7 +88,7 @@ export default function DayEventsScreen() {
     const groupedEvents = useMemo(() => {
         const groups = {};
         eventsForDay.forEach((event) => {
-            const key = normalizeCategory(event.category) || "기타";
+            const key = getEventCategory(event);
             if (!groups[key]) groups[key] = [];
             groups[key].push(event);
         });
@@ -139,7 +136,7 @@ export default function DayEventsScreen() {
     const renderEvents = (eventsList) =>
         eventsList.map((event) => {
             const eventDate = resolveEventDate(event.date);
-            const category = normalizeCategory(event.category) || "기타";
+            const category = getEventCategory(event);
             return (
                 <StyledView key={event.id} className="p-4 border border-gray-200 rounded-lg mb-2 bg-white">
                     <StyledText className="text-base font-semibold text-gray-900 mb-1">{event.title}</StyledText>
@@ -180,12 +177,6 @@ export default function DayEventsScreen() {
                                 </StyledView>
                             );
                         })}
-                        {groupedEvents["기타"] && groupedEvents["기타"].length > 0 && (
-                            <StyledView className="mb-6">
-                                <StyledText className="text-sm font-bold text-gray-900 mb-2">기타 이벤트</StyledText>
-                                {renderEvents(groupedEvents["기타"])}
-                            </StyledView>
-                        )}
                     </>
                 ) : (
                     <StyledView className="items-center py-20">

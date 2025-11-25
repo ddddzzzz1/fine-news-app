@@ -16,6 +16,7 @@ Naming & Organization
 Screens follow Expo Router naming (app/(tabs)/calendar.js, app/community/[id].js). Keep new screens under app/ with lowercase filenames; components live in components/ and use PascalCase names (CommunityPostCard).
 Query keys are array literals describing scope (e.g., ["home-community-posts"]). Follow this pattern for new keys.
 Firestore fields match the schema documented in fire_data.md; keep consistent casing (snake_case for fields like created_date, PascalCase for components).
+`contests.category` 값은 항상 `대외활동`, `취업`, `자격증` 중 하나여야 하며 새로운 문자열을 추가하려면 사전 논의 후 fire_data.md를 먼저 갱신하세요.
 Strictness & Conventions
 
 Stick to the existing Tailwind utility classes for layout; avoid custom inline styles unless necessary for dynamic sizing.

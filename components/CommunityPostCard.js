@@ -15,7 +15,7 @@ const StyledView = styled(View);
 const StyledText = styled(Text);
 const StyledImage = styled(Image);
 
-export default function CommunityPostCard({ post }) {
+export default function CommunityPostCard({ post, showImagePreview = true }) {
     const router = useRouter();
     const queryClient = useQueryClient();
     const [liking, setLiking] = useState(false);
@@ -60,7 +60,6 @@ export default function CommunityPostCard({ post }) {
                 });
             }
             await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ["home-community-posts"] }),
                 queryClient.invalidateQueries({ queryKey: ["tab-community-posts"] }),
                 queryClient.invalidateQueries({ queryKey: ["community-post", post.id] }),
             ]);
@@ -75,7 +74,7 @@ export default function CommunityPostCard({ post }) {
         <Link href={`/community/${post.id}`} asChild>
             <Pressable>
                 <Card className="p-4 border-0 border-b border-gray-100 rounded-none">
-                    {post.image_url && (
+                    {showImagePreview && post.image_url && (
                         <StyledImage
                             source={{ uri: post.image_url }}
                             className="w-full rounded-xl mb-3 bg-gray-100"
