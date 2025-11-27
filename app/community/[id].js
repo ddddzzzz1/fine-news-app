@@ -408,13 +408,15 @@ export default function CommunityDetail() {
                 )}
 
                 <StyledView className="flex-row items-center justify-between mb-6">
-                    <TouchableOpacity
-                        onPress={handleLike}
-                        className="flex-row items-center space-x-2 px-4 py-2 rounded-full border border-indigo-200"
-                    >
-                        <Heart size={18} color={hasLiked ? "#ef4444" : "#4b5563"} fill={hasLiked ? "#ef4444" : "transparent"} />
-                        <StyledText className="text-sm text-gray-900">{likeCount}</StyledText>
-                    </TouchableOpacity>
+                    {!isAuthor && (
+                        <TouchableOpacity
+                            onPress={handleLike}
+                            className="flex-row items-center space-x-2 px-4 py-2 rounded-full border border-indigo-200"
+                        >
+                            <Heart size={18} color={hasLiked ? "#ef4444" : "#4b5563"} fill={hasLiked ? "#ef4444" : "transparent"} />
+                            <StyledText className="text-sm text-gray-900">{likeCount}</StyledText>
+                        </TouchableOpacity>
+                    )}
                     <StyledText className="text-xs text-indigo-500">{likeCount > 5 ? "인기글" : ""}</StyledText>
                 </StyledView>
 
