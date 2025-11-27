@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { auth } from "../firebaseConfig";
+import { doc, onSnapshot } from "firebase/firestore";
+import { auth, db } from "../firebaseConfig";
 
 export function useAdminClaims() {
     const [isAdmin, setIsAdmin] = useState(false);
@@ -7,30 +8,51 @@ export function useAdminClaims() {
 
     useEffect(() => {
         let isMounted = true;
-        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+        let unsubscribeProfile = null;
+
+        const unsubscribeAuth = auth.onAuthStateChanged((user) => {
             if (!isMounted) return;
+
+            // Clear previous profile listener when auth changes
+            unsubscribeProfile?.();
+
             if (!user) {
                 setIsAdmin(false);
                 setIsLoading(false);
                 return;
             }
+
             setIsLoading(true);
             try {
-                const tokenResult = await user.getIdTokenResult(true);
-                if (isMounted) {
-                    setIsAdmin(!!tokenResult?.claims?.admin);
-                }
+                const profileRef = doc(db, "user_profiles", user.uid);
+                unsubscribeProfile = onSnapshot(
+                    profileRef,
+                    (snapshot) => {
+                        if (!isMounted) return;
+                        const profileData = snapshot.exists() ? snapshot.data() : null;
+                        const isProfileAdmin = profileData?.verification_status === "admin";
+                        setIsAdmin(!!isProfileAdmin);
+                        setIsLoading(false);
+                    },
+                    (error) => {
+                        console.log("Admin profile fetch error", error);
+                        if (isMounted) {
+                            setIsAdmin(false);
+                            setIsLoading(false);
+                        }
+                    }
+                );
             } catch (error) {
-                console.log("Admin claim fetch error", error);
-                if (isMounted) setIsAdmin(false);
-            } finally {
-                if (isMounted) setIsLoading(false);
+                console.log("Admin profile fetch error", error);
+                setIsAdmin(false);
+                setIsLoading(false);
             }
         });
 
         return () => {
             isMounted = false;
-            unsubscribe?.();
+            unsubscribeProfile?.();
+            unsubscribeAuth?.();
         };
     }, []);
 

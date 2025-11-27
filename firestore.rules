@@ -86,6 +86,11 @@ service cloud.firestore {
 
     match /contests/{docId} {
       allow read: if true;
+      allow create, update: if isAdmin()
+        || (
+          signedIn()
+          && get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.verification_status == "admin"
+        );
     }
 
     match /contest_details/{docId} {

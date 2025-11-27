@@ -58,7 +58,7 @@ This app expects four top-level collections. Seed them in Cloud Firestore (or vi
 | `comments` | array\<object> | Comments stored inline. Shape: `{ id, author, display_name, content, created_at, user_id, is_author, anon_index }`. `display_name` is `"익명(작성자)"` for post author replies; others auto-increment `익명1`, `익명2`, … within the post. Keep `comment_count` in sync with the array length. |
 | `reports_count` | number (optional) | Increment when 운영팀 processes a 신고 so 인기 영역에서 숨길 수 있습니다. |
 
-> 커뮤니티 화면 상단의 탭(인기글/자유/취업/모집/스터디)은 `board_type` 필드를 직접 필터링하며, “인기글”은 `like_count`가 5회를 초과하는 문서만 노출하는 가상 카테고리입니다.
+> 커뮤니티 화면 상단의 탭(전체/인기글/자유/취업/모집/스터디)은 `board_type` 필드를 직접 필터링하며, “전체”는 필터 없이 최신순 전체 글을 보여주고 “인기글”은 `like_count`가 5회를 초과하는 문서만 노출하는 가상 카테고리입니다.
 
 ### 3. `calendar_events`
 | Field | Type | Notes |
@@ -121,7 +121,7 @@ Document ID = Firebase Auth UID. Tracks student verification.
 | Field | Type | Notes |
 | --- | --- | --- |
 | `university_name` | string | University or college displayed in the 마이 탭. |
-| `verification_status` | string | One of `verified`, `pending`, `unverified`. Drives feature restrictions. |
+| `verification_status` | string | One of `verified`, `pending`, `unverified`, `admin`. Drives feature restrictions. |
 | `student_email_domain` | string (optional) | Official school domain for cross-checks. |
 | `student_id_image_url` | string (optional) | Download URL for the submitted ID image. |
 | `student_id_storage_path` | string (optional) | Storage path of the uploaded 이미지. Used when 사용자가 계정을 삭제할 때 파일을 제거합니다. |
@@ -134,7 +134,7 @@ Document ID = Firebase Auth UID. Tracks student verification.
 | `submitted_at` | timestamp | When the verification data was uploaded. |
 | `updated_at` | timestamp | Last review time. |
 
-> Default new users to `verification_status = "unverified"` and bump them to `pending`/`verified` during manual review.
+> Default new users to `verification_status = "unverified"` and bump them to `pending`/`verified` during manual review. `admin` is a special flag used to unlock 운영/신고 관리 기능.
 
 > **Account deletion:** Settings → “계정 완전 삭제”는 Firebase Functions(`closeAccount`)를 호출해 `user_profiles`, `saved_contests`, 개인 `calendar_events`, `community_posts`(및 첨부 이미지)를 제거합니다. 위의 Storage path 필드를 채워두어야 업로드된 학생증이 안전하게 삭제됩니다.
 

@@ -265,7 +265,7 @@ export default function Home() {
             </StyledScrollView>
 
             {showIndexBar && (
-                <View style={{ position: 'absolute', left: 0, right: 0, bottom: tickerBottomOffset }}>
+                <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
                     <StockTicker indices={displayIndices} onPressIndex={handleOpenIndexModal} />
                 </View>
             )}

@@ -7,7 +7,7 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
-import { Settings, ChevronRight, FileText, HelpCircle, LogOut, Bookmark, Bell, Shield } from "lucide-react-native";
+import { ChevronRight, FileText, HelpCircle, LogOut, Bookmark, Bell, Shield, Settings } from "lucide-react-native";
 import { signOut } from "firebase/auth";
 import { useRouter } from "expo-router";
 import { useUserProfile } from "../../lib/useUserProfile";
@@ -43,10 +43,10 @@ export default function Profile() {
     const university = currentUser?.photoURL || "";
     const universityName = profile.university_name || university || "미등록";
     const verificationStatus = profile.verification_status || "unverified";
-    const isVerifiedStudent = verificationStatus === "verified";
+    const isVerifiedStudent = verificationStatus === "verified" || verificationStatus === "admin";
     const isPendingVerification = verificationStatus === "pending";
     const statusText =
-        verificationStatus === "verified"
+        verificationStatus === "verified" || verificationStatus === "admin"
             ? "학생 인증 완료"
             : verificationStatus === "pending"
               ? "인증 심사 중"
@@ -92,7 +92,7 @@ export default function Profile() {
     });
 
     const menuItems = [
-        { icon: FileText, label: "내 게시글", count: myPosts?.length || 0, action: () => router.push("/my-posts") },
+        { icon: FileText, label: "내 글", count: myPosts?.length || 0, action: () => router.push("/my-posts") },
         { icon: Bookmark, label: "저장한 공고", count: savedContests?.length || 0, action: () => router.push("/saved-contests") },
         { icon: Bell, label: "알림 설정", count: null, action: () => router.push("/notification-settings") },
         { icon: HelpCircle, label: "도움말", count: null, action: () => router.push("/help") },
@@ -125,14 +125,7 @@ export default function Profile() {
             <StyledScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 32 }}>
                 <StyledView className="bg-white border-b border-gray-100 px-4 py-3 flex-row items-center justify-between">
                     <StyledText className="text-xl font-bold text-gray-900">마이</StyledText>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="rounded-full"
-                        onPress={() => router.push("/settings")}
-                    >
-                        <Settings size={20} color="#111827" />
-                    </Button>
+                    <StyledView style={{ width: 40 }} />
                 </StyledView>
 
                 <StyledView className="bg-white px-6 py-6 mb-2">

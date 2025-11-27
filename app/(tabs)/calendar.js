@@ -51,26 +51,15 @@ const getEventCategory = (event) => {
 const fallbackEvents = [
     {
         id: "sample-1",
-        title: "FOMC 회의 결과 발표",
-        description: "미국 기준금리 방향을 확인하세요.",
+        title: "Sample Event",
+        description: "Example event for the calendar.",
         date: new Date().toISOString(),
         category: "경제",
     },
-    {
-        id: "sample-2",
-        title: "테슬라 실적 발표",
-        description: "빅테크 실적 시즌의 포문을 엽니다.",
-        date: new Date(Date.now() + 86400000 * 2).toISOString(),
-        category: "경제",
-    },
-    {
-        id: "sample-3",
-        title: "대한민국 소비자물가 지수",
-        description: "물가 지표 발표일을 체크하세요.",
-        date: new Date(Date.now() + 86400000 * 5).toISOString(),
-        category: "경제",
-    },
 ];
+
+const ADMIN_TABS = ["마이 이벤트", "경제 이벤트", "모든 이벤트"];
+
 
 export default function CalendarTab() {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -125,9 +114,11 @@ export default function CalendarTab() {
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
     const getEventsForDay = (day) =>
-        filteredEvents.filter((event) => {
+        allEvents.filter((event) => {
             const eventDate = resolveEventDate(event.date);
-            return eventDate ? isSameDay(eventDate, day) : false;
+            if (!eventDate || !isSameDay(eventDate, day)) return false;
+            if (event.is_personal && event.user_id && event.user_id !== userId) return false;
+            return true;
         });
 
     const eventsForSelectedDate = useMemo(() => {
@@ -146,7 +137,7 @@ export default function CalendarTab() {
     };
     const categoryOptions = Object.keys(eventColors);
 
-    const tabs = ["마이 이벤트", "경제 이벤트", "모든 이벤트"];
+    const tabs = isAdmin ? ["마이 이벤트", "경제 이벤트", "모든 이벤트"] : ["마이 이벤트"];
 
     const ColorLegend = ({ compact = false }) => (
         <StyledScrollView
@@ -166,6 +157,11 @@ export default function CalendarTab() {
     );
 
     const handleDayPress = (day) => {
+        if (selectedDate && isSameDay(day, selectedDate)) {
+            setSelectedDate(null);
+            setShowDetail(false);
+            return;
+        }
         setSelectedDate(day);
         setNewEventDate(day);
         setShowDetail(true);
@@ -285,34 +281,23 @@ export default function CalendarTab() {
     return (
         <StyledSafeAreaView edges={["top"]} className="flex-1 bg-white">
             <StyledView className="border-b border-gray-100 px-4 py-3">
-                <StyledView className="flex-row items-center justify-between mb-3">
-                    <StyledView className="flex-row items-center space-x-2">
-                        <StyledTouchableOpacity
-                            onPress={() => setCurrentDate(subMonths(currentDate, 1))}
-                            className="h-8 w-8 rounded-full items-center justify-center"
-                        >
-                            <ChevronLeft size={18} color="#111827" />
-                        </StyledTouchableOpacity>
-                        <StyledText className="text-lg font-bold text-gray-900">
-                            {activeTab}
-                        </StyledText>
-                        <StyledTouchableOpacity
-                            onPress={() => setCurrentDate(addMonths(currentDate, 1))}
-                            className="h-8 w-8 rounded-full items-center justify-center"
-                        >
-                            <ChevronRight size={18} color="#111827" />
-                        </StyledTouchableOpacity>
+                <StyledView className="flex-row items-center justify-center space-x-4 mb-3">
+                    <StyledTouchableOpacity
+                        onPress={() => setCurrentDate(subMonths(currentDate, 1))}
+                        className="h-9 w-9 rounded-full items-center justify-center"
+                    >
+                        <ChevronLeft size={18} color="#111827" />
+                    </StyledTouchableOpacity>
+                    <StyledView className="flex-row items-baseline">
+                        <StyledText className="text-2xl font-bold">{format(currentDate, "M월", { locale: ko })}</StyledText>
+                        <StyledText className="text-2xl font-bold ml-2">{format(currentDate, "yyyy")}</StyledText>
                     </StyledView>
                     <StyledTouchableOpacity
-                        className="h-8 w-8 rounded-full items-center justify-center"
-                        onPress={() => handleAddEventPress()}
+                        onPress={() => setCurrentDate(addMonths(currentDate, 1))}
+                        className="h-9 w-9 rounded-full items-center justify-center"
                     >
-                        <CalendarDays size={18} color="#111827" />
+                        <ChevronRight size={18} color="#111827" />
                     </StyledTouchableOpacity>
-                </StyledView>
-                <StyledView className="flex-row items-center justify-center mb-3">
-                    <StyledText className="text-2xl font-bold">{format(currentDate, "M월", { locale: ko })}</StyledText>
-                    <StyledText className="text-2xl font-bold ml-2">{format(currentDate, "yyyy")}</StyledText>
                 </StyledView>
                 <StyledView className="flex-row border-b border-gray-200">
                     {tabs.map((tab) => (
@@ -332,11 +317,6 @@ export default function CalendarTab() {
                             </StyledText>
                         </StyledTouchableOpacity>
                     ))}
-                </StyledView>
-                <StyledView className="mt-3">
-                    <Button variant="outline" onPress={() => handleAddEventPress()}>
-                        내 일정 추가
-                    </Button>
                 </StyledView>
             </StyledView>
 
@@ -418,9 +398,6 @@ export default function CalendarTab() {
                             <StyledView className="flex-row space-x-2">
                                 <Button variant="ghost" onPress={() => router.push(`/calendar-day/${selectedDate.toISOString()}`)}>
                                     전체 보기
-                                </Button>
-                                <Button variant="ghost" onPress={() => setShowDetail(false)}>
-                                    닫기
                                 </Button>
                             </StyledView>
                         </StyledView>

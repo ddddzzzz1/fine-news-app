@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Alert, TouchableOpacity, Image } from "react-native";
+import { View, Text, TextInput, Alert, TouchableOpacity, Image, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../components/ui/button";
 import { styled } from "nativewind";
@@ -38,7 +38,7 @@ export default function WritePost() {
     const [isProcessingImage, setIsProcessingImage] = useState(false);
 
     const verificationStatus = userProfile?.verification_status || "unverified";
-    const isVerifiedStudent = verificationStatus === "verified";
+    const isVerifiedStudent = verificationStatus === "verified" || verificationStatus === "admin";
     const isPendingVerification = verificationStatus === "pending";
     const universityName = userProfile?.university_name || "Fine University";
 

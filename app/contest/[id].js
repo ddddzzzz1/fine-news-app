@@ -30,11 +30,6 @@ export default function ContestDetail() {
         queryKey: ["contest-detail", id],
         queryFn: async () => {
             if (!id) return null;
-            const detailRef = doc(db, "contest_details", id);
-            const detailSnap = await getDoc(detailRef);
-            if (detailSnap.exists()) {
-                return { id: detailSnap.id, ...detailSnap.data() };
-            }
             const ref = doc(db, "contests", id);
             const snap = await getDoc(ref);
             return snap.exists() ? { id: snap.id, ...snap.data() } : null;
@@ -67,7 +62,7 @@ export default function ContestDetail() {
             if (contest.end_date) {
                 await setDoc(doc(db, "calendar_events", `saved-${userId}-${id}`), {
                     title: `[관심] ${contest.title}`,
-                    description: contest.description || "관심 공모전 마감일",
+                    description: "",
                     date: Timestamp.fromDate(new Date(contest.end_date)),
                     category: "마이",
                     is_personal: true,
@@ -133,12 +128,8 @@ export default function ContestDetail() {
                         <StyledText className="text-sm text-gray-500">모집 기간</StyledText>
                         <StyledText className="text-base font-medium text-gray-900">
                             {contest.start_date
-                                ? `${format(new Date(contest.start_date), "yyyy.MM.dd", { locale: ko })} - ${format(
-                                      new Date(contest.end_date),
-                                      "yyyy.MM.dd",
-                                      { locale: ko }
-                                  )}`
-                                : format(new Date(contest.end_date), "yyyy.MM.dd", { locale: ko })}
+                                ? `${safeFormatDate(contest.start_date)} - ${safeFormatDate(contest.end_date)}`
+                                : safeFormatDate(contest.end_date)}
                         </StyledText>
                     </StyledView>
                 )}
@@ -166,4 +157,14 @@ export default function ContestDetail() {
             </StyledScrollView>
         </StyledSafeAreaView>
     );
+}
+
+function safeFormatDate(value) {
+    const date = value instanceof Date ? value : new Date(value);
+    if (isNaN(date.getTime())) return "날짜 미정";
+    try {
+        return format(date, "yyyy.MM.dd", { locale: ko });
+    } catch (e) {
+        return "날짜 미정";
+    }
 }

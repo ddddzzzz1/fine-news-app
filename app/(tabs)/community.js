@@ -17,7 +17,7 @@ const StyledScrollView = styled(ScrollView);
 const StyledTouchableOpacity = styled(TouchableOpacity);
 const StyledCategoryScrollView = styled(ScrollView);
 
-const categories = ["인기글", "자유", "취업", "모집", "스터디"];
+const categories = ["전체", "인기글", "자유", "취업", "모집", "스터디"];
 const POPULAR_LIKE_THRESHOLD = 5;
 
 export default function CommunityTab() {
@@ -41,6 +41,10 @@ export default function CommunityTab() {
 
     const filteredPosts = useMemo(() => {
         if (!communityPosts?.length) return [];
+
+        if (selectedCategory === "전체") {
+            return communityPosts;
+        }
 
         if (selectedCategory === "인기글") {
             return communityPosts
