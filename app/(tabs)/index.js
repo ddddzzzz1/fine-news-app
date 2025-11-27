@@ -169,7 +169,7 @@ export default function Home() {
     const safeTabBarHeight = Number.isFinite(tabBarHeight) ? tabBarHeight : 0;
     const tabBarVisibleHeight = Math.max(safeTabBarHeight - bottomInset, 0);
     const baseBottomOffset = tabBarVisibleHeight + bottomInset;
-    const tickerBottomOffset = safeTabBarHeight;
+    const tickerBottomOffset = Math.max(tabBarVisibleHeight, 0) + 8;
     const scrollPaddingBottom = showIndexBar ? baseBottomOffset + indexBarHeight + 32 : baseBottomOffset + 32;
 
     const { data: dailyBriefing } = useQuery({
