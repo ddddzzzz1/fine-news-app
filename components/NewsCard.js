@@ -5,7 +5,7 @@ import { Card } from "./ui/card";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { styled } from "nativewind";
-import { TrendingUp, Tag } from "lucide-react-native";
+import { Tag } from "lucide-react-native";
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
@@ -51,19 +51,9 @@ export default function NewsCard({ news }) {
 
                     {/* Summary (Optional) */}
                     {news.summary && (
-                        <StyledText className="text-sm text-gray-600 mb-4 leading-5" numberOfLines={2}>
+                        <StyledText className="text-sm text-gray-600 mb-2 leading-5" numberOfLines={2}>
                             {news.summary}
                         </StyledText>
-                    )}
-
-                    {/* Key Data Points (New Feature) */}
-                    {news.key_data_points && (
-                        <StyledView className="bg-indigo-50 rounded-lg p-3 mb-4 flex-row items-start">
-                            <TrendingUp size={16} color="#4f46e5" style={{ marginTop: 2, marginRight: 8 }} />
-                            <StyledText className="text-sm text-indigo-900 font-medium flex-1">
-                                {news.key_data_points}
-                            </StyledText>
-                        </StyledView>
                     )}
 
                     {/* Footer: Tags */}

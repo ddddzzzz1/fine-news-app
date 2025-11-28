@@ -1,19 +1,20 @@
-import React, { useState } from 'react';
-import { Link } from 'expo-router';
-import { View, Text, Pressable, TouchableOpacity, Image, Alert } from 'react-native';
-import { Card } from './ui/card';
-import { MessageCircle, Heart } from 'lucide-react-native';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
-import { styled } from 'nativewind';
-import { db, auth } from '../firebaseConfig';
-import { doc, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
-import { useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import React, { useState } from "react";
+import { Link } from "expo-router";
+import { View, Text, Pressable, TouchableOpacity, Image, Alert } from "react-native";
+import { Card } from "./ui/card";
+import { MessageCircle, Heart } from "lucide-react-native";
+import { formatDistanceToNow } from "date-fns";
+import { ko } from "date-fns/locale";
+import { styled } from "nativewind";
+import { db, auth } from "../firebaseConfig";
+import { doc, updateDoc, arrayUnion, arrayRemove, increment } from "firebase/firestore";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
 const StyledImage = styled(Image);
+const POPULAR_LIKE_THRESHOLD = 5;
 
 export default function CommunityPostCard({ post, showImagePreview = true, disableLike = false }) {
     const router = useRouter();
@@ -70,6 +71,12 @@ export default function CommunityPostCard({ post, showImagePreview = true, disab
         }
     };
 
+    const relativeTime = createdDate
+        ? formatDistanceToNow(createdDate, { locale: ko, addSuffix: true })
+        : "방금 전";
+    const previewText = post?.content?.trim();
+    const isPopular = likeCount >= POPULAR_LIKE_THRESHOLD;
+
     return (
         <Link href={`/community/${post.id}`} asChild>
             <Pressable>
@@ -97,46 +104,56 @@ export default function CommunityPostCard({ post, showImagePreview = true, disab
                         </StyledView>
                     )}
                     <StyledView className="mb-2">
-                        <StyledView className="flex-row items-center space-x-2 mb-1">
-                            <StyledText className="text-xs text-gray-500">{post.university}</StyledText>
-                            <StyledText className="text-xs text-gray-400">|</StyledText>
-                            <StyledText className="text-xs text-gray-500">{post.board_type}</StyledText>
+                        <StyledView className="flex-row flex-wrap items-center mb-1">
+                            <StyledText className="text-[11px] font-semibold text-indigo-600">
+                                {post.board_type || "게시판"}
+                            </StyledText>
+                            <StyledView className="mx-1 h-1 w-1 rounded-full bg-gray-300" />
+                            <StyledText className="text-xs text-gray-500">{post.university || "학교 미정"}</StyledText>
+                            <StyledView className="mx-1 h-1 w-1 rounded-full bg-gray-300" />
+                            <StyledText className="text-[11px] text-gray-400">{relativeTime}</StyledText>
                         </StyledView>
-                        <StyledText className="font-semibold text-base text-gray-900" numberOfLines={1}>
+                        <StyledText className="font-semibold text-lg text-gray-900" numberOfLines={2}>
                             {post.title}
                         </StyledText>
-                    </StyledView>
-                    <StyledView className="flex-row items-center justify-between">
-                        <StyledText className="text-xs text-gray-500">
-                            {createdDate ? format(createdDate, 'yy.MM.dd', { locale: ko }) : '날짜 미정'}
-                        </StyledText>
-                        <StyledView className="flex-row items-center space-x-3">
-                            <StyledView className="flex-row items-center space-x-1">
-                                <MessageCircle size={12} color="#6b7280" />
-                                <StyledText className="text-xs text-gray-500">{post.comment_count ?? post.comments?.length ?? 0}</StyledText>
-                            </StyledView>
-                        </StyledView>
+                        {previewText ? (
+                            <StyledText className="text-sm text-gray-600 mt-1" numberOfLines={2}>
+                                {previewText}
+                            </StyledText>
+                        ) : null}
                     </StyledView>
                     <StyledView className="mt-3 flex-row items-center justify-between">
-                        {disableLike ? (
-                            <StyledView className="flex-row items-center space-x-1 opacity-60">
-                                <Heart size={16} color="#6b7280" />
-                                <StyledText className="text-xs text-gray-700">{likeCount}</StyledText>
+                        <StyledView className="flex-row items-center space-x-4">
+                            <StyledView className="flex-row items-center space-x-1">
+                                <MessageCircle size={16} color="#6b7280" />
+                                <StyledText className="text-sm text-gray-600">
+                                    {post.comment_count ?? post.comments?.length ?? 0}
+                                </StyledText>
                             </StyledView>
-                        ) : (
-                            <TouchableOpacity
-                                onPress={(e) => {
-                                    e.stopPropagation();
-                                    handleLike();
-                                }}
-                                className="flex-row items-center space-x-1"
-                                disabled={liking}
-                            >
-                                <Heart size={16} color={hasLiked ? "#ef4444" : "#6b7280"} fill={hasLiked ? "#ef4444" : "transparent"} />
-                                <StyledText className="text-xs text-gray-700">{likeCount}</StyledText>
-                            </TouchableOpacity>
-                        )}
-                        <StyledText className="text-xs text-indigo-500">{likeCount > 5 ? "인기글" : ""}</StyledText>
+                            {disableLike ? (
+                                <StyledView className="flex-row items-center space-x-1 opacity-60">
+                                    <Heart size={18} color="#6b7280" />
+                                    <StyledText className="text-sm text-gray-600">{likeCount}</StyledText>
+                                </StyledView>
+                            ) : (
+                                <TouchableOpacity
+                                    onPress={(e) => {
+                                        e.stopPropagation();
+                                        handleLike();
+                                    }}
+                                    className="flex-row items-center space-x-1"
+                                    disabled={liking}
+                                >
+                                    <Heart
+                                        size={18}
+                                        color={hasLiked ? "#ef4444" : "#6b7280"}
+                                        fill={hasLiked ? "#ef4444" : "transparent"}
+                                    />
+                                    <StyledText className="text-sm text-gray-600">{likeCount}</StyledText>
+                                </TouchableOpacity>
+                            )}
+                        </StyledView>
+                        {isPopular && <StyledText className="text-xs font-semibold text-indigo-500">인기글</StyledText>}
                     </StyledView>
                 </Card>
             </Pressable>

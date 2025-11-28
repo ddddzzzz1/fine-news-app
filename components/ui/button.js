@@ -1,4 +1,5 @@
-import { Text, TouchableOpacity, View } from "react-native";
+import React from "react";
+import { Text, TouchableOpacity } from "react-native";
 import { cva } from "class-variance-authority";
 import { cn } from "../../lib/utils";
 import { styled } from "nativewind";
@@ -52,17 +53,21 @@ const buttonTextVariants = cva(
 );
 
 const Button = ({ className, variant, size, children, ...props }) => {
+    const childArray = React.Children.toArray(children);
+    const hasOnlyTextNodes = childArray.length > 0 && childArray.every((child) => typeof child === "string" || typeof child === "number");
+    const textContent = hasOnlyTextNodes ? childArray.join("") : null;
+
     return (
         <StyledTouchableOpacity
             className={cn(buttonVariants({ variant, size, className }))}
             {...props}
         >
-            {typeof children === "string" ? (
+            {hasOnlyTextNodes ? (
                 <StyledText className={buttonTextVariants({ variant })}>
-                    {children}
+                    {textContent}
                 </StyledText>
             ) : (
-                children
+                childArray
             )}
         </StyledTouchableOpacity>
     );

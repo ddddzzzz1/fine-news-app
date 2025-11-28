@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Button } from "../../components/ui/button";
-import { ArrowLeft } from "lucide-react-native";
+import { ArrowLeft, Clock, MapPin } from "lucide-react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { collection, getDocs, orderBy, query, limit, deleteDoc, doc } from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
@@ -31,6 +31,19 @@ const categorySections = [
     { key: "경제", label: "경제 이벤트" },
 ];
 
+const eventColors = {
+    마이: {
+        accent: "bg-blue-500",
+        badge: "bg-blue-100",
+        badgeText: "text-blue-700",
+    },
+    경제: {
+        accent: "bg-orange-500",
+        badge: "bg-orange-100",
+        badgeText: "text-orange-700",
+    },
+};
+
 const normalizeCategory = (value) => (typeof value === "string" ? value.trim() : "");
 
 const getEventCategory = (event) => {
@@ -50,6 +63,8 @@ const resolveEventDate = (value) => {
     }
     return new Date(value);
 };
+
+const getCategoryColors = (category) => eventColors[category] || { accent: "bg-gray-200", badge: "bg-gray-100", badgeText: "text-gray-600" };
 
 export default function DayEventsScreen() {
     const router = useRouter();
@@ -119,6 +134,15 @@ export default function DayEventsScreen() {
         ]);
     };
 
+    const formattedHeaderDate = format(selectedDate, "M월 d일 (EEE)", { locale: ko });
+
+    const handleAddEventCTA = () => {
+        router.push({
+            pathname: "/(tabs)/calendar",
+            params: { focusDate: selectedDate.toISOString() },
+        });
+    };
+
     const renderDeleteAction = (event) => {
         if (!event?.is_personal || event.user_id !== userId) return null;
         return (
@@ -137,14 +161,49 @@ export default function DayEventsScreen() {
         eventsList.map((event) => {
             const eventDate = resolveEventDate(event.date);
             const category = getEventCategory(event);
+            const colors = getCategoryColors(category);
+            const timeLabel = eventDate ? format(eventDate, "HH:mm", { locale: ko }) : "--:--";
             return (
-                <StyledView key={event.id} className="p-4 border border-gray-200 rounded-lg mb-2 bg-white">
-                    <StyledText className="text-base font-semibold text-gray-900 mb-1">{event.title}</StyledText>
-                    {event.description && <StyledText className="text-sm text-gray-600 mb-1">{event.description}</StyledText>}
-                    <StyledText className="text-xs text-gray-500">
-                        {category} · {eventDate ? format(eventDate, "HH:mm", { locale: ko }) : ""}
-                    </StyledText>
-                    {renderDeleteAction(event)}
+                <StyledView
+                    key={event.id}
+                    className="mb-4 rounded-2xl bg-white border border-gray-100"
+                    style={{
+                        shadowColor: "#0f172a",
+                        shadowOpacity: 0.08,
+                        shadowRadius: 12,
+                        shadowOffset: { width: 0, height: 6 },
+                        elevation: 6,
+                    }}
+                >
+                    <StyledView className="flex-row rounded-2xl overflow-hidden">
+                        <StyledView className={`w-1.5 ${colors.accent}`} />
+                        <StyledView className="flex-1 flex-row p-4">
+                            <StyledView className="items-center mr-4">
+                                <StyledView className="h-9 w-9 rounded-full bg-indigo-50 items-center justify-center mb-1">
+                                    <Clock size={16} color="#4c1d95" />
+                                </StyledView>
+                                <StyledText className="text-lg font-bold text-gray-900">{timeLabel}</StyledText>
+                            </StyledView>
+                            <StyledView className="flex-1">
+                                <StyledView className="flex-row flex-wrap items-center mb-1">
+                                    <StyledView className={`px-2 py-0.5 rounded-full mr-2 ${colors.badge}`}>
+                                        <StyledText className={`text-[11px] font-semibold ${colors.badgeText}`}>{category}</StyledText>
+                                    </StyledView>
+                                    <StyledText className="text-[11px] text-gray-400">
+                                        {eventDate ? format(eventDate, "EEE HH:mm", { locale: ko }) : ""}
+                                    </StyledText>
+                                </StyledView>
+                                <StyledText className="text-base font-semibold text-gray-900">{event.title}</StyledText>
+                                {event.description ? (
+                                    <StyledView className="flex-row items-start mt-1">
+                                        <MapPin size={14} color="#94a3b8" />
+                                        <StyledText className="text-sm text-gray-600 ml-1 flex-1">{event.description}</StyledText>
+                                    </StyledView>
+                                ) : null}
+                                {renderDeleteAction(event)}
+                            </StyledView>
+                        </StyledView>
+                    </StyledView>
                 </StyledView>
             );
         });
@@ -157,7 +216,7 @@ export default function DayEventsScreen() {
                     <ArrowLeft size={22} color="#111827" />
                 </Button>
                 <StyledText className="font-semibold text-sm text-gray-900">
-                    {format(selectedDate, "M월 d일", { locale: ko })}
+                    {formattedHeaderDate}
                 </StyledText>
                 <View style={{ width: 40 }} />
             </StyledView>
@@ -170,9 +229,13 @@ export default function DayEventsScreen() {
                         {categorySections.map(({ key, label }) => {
                             const categoryEvents = groupedEvents[key];
                             if (!categoryEvents || !categoryEvents.length) return null;
+                            const colors = getCategoryColors(key);
                             return (
                                 <StyledView key={key} className="mb-6">
-                                    <StyledText className="text-sm font-bold text-gray-900 mb-2">{label}</StyledText>
+                                    <StyledView className="flex-row items-center mb-2">
+                                        <StyledView className={`h-2 w-2 rounded-full mr-2 ${colors.accent}`} />
+                                        <StyledText className="text-sm font-bold text-gray-900">{label}</StyledText>
+                                    </StyledView>
                                     {renderEvents(categoryEvents)}
                                 </StyledView>
                             );
@@ -181,8 +244,18 @@ export default function DayEventsScreen() {
                 ) : (
                     <StyledView className="items-center py-20">
                         <StyledText className="text-sm text-gray-500">해당 날짜에 등록된 이벤트가 없습니다.</StyledText>
+                        <Button className="mt-4 rounded-full px-6" onPress={handleAddEventCTA}>
+                            이 날짜에 일정 추가
+                        </Button>
                     </StyledView>
                 )}
+                {eventsForDay.length ? (
+                    <StyledView className="mt-4">
+                        <Button className="rounded-full h-12" onPress={handleAddEventCTA}>
+                            {format(selectedDate, "M월 d일")} 일정 추가
+                        </Button>
+                    </StyledView>
+                ) : null}
             </StyledScrollView>
         </StyledSafeAreaView>
     );

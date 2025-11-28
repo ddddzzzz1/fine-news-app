@@ -1,8 +1,8 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Alert, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
-import { Edit3, RefreshCw } from "lucide-react-native";
+import { Edit3 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -17,7 +17,6 @@ const StyledText = styled(Text);
 const StyledScrollView = styled(ScrollView);
 const StyledTouchableOpacity = styled(TouchableOpacity);
 const StyledCategoryScrollView = styled(ScrollView);
-const StyledActivityIndicator = styled(ActivityIndicator);
 
 const categories = ["전체", "인기글", "자유", "취업", "모집", "스터디"];
 const POPULAR_LIKE_THRESHOLD = 5;
@@ -99,18 +98,6 @@ export default function CommunityTab() {
                         <StyledText className="text-xl font-bold text-gray-900">커뮤니티</StyledText>
                         <StyledText className="text-sm text-gray-500 mt-1">인기글부터 관심 주제까지 확인해보세요</StyledText>
                     </StyledView>
-                    <StyledTouchableOpacity
-                        onPress={refreshPosts}
-                        disabled={isRefreshing || isFetching}
-                        accessibilityLabel="커뮤니티 새로고침"
-                        className={`p-2.5 rounded-full border border-gray-200 ${isRefreshing || isFetching ? "opacity-60" : ""}`}
-                    >
-                        {isRefreshing || isFetching ? (
-                            <StyledActivityIndicator size="small" color="#4B5563" />
-                        ) : (
-                            <RefreshCw size={20} color="#4B5563" />
-                        )}
-                    </StyledTouchableOpacity>
                 </StyledView>
                 <StyledCategoryScrollView
                     horizontal
@@ -132,7 +119,7 @@ export default function CommunityTab() {
                             >
                                 <StyledText
                                     className={`text-sm ${
-                                        selectedCategory === category ? "text-white" : "text-gray-700"
+                                        selectedCategory === category ? "text-white" : "text-gray-400"
                                     }`}
                                 >
                                     {category}
@@ -143,7 +130,12 @@ export default function CommunityTab() {
                 </StyledCategoryScrollView>
             </StyledView>
 
-            <StyledScrollView className="flex-1 px-4">
+            <StyledScrollView
+                className="flex-1 px-4"
+                refreshControl={
+                    <RefreshControl refreshing={isRefreshing || isFetching} onRefresh={refreshPosts} tintColor="#6366f1" />
+                }
+            >
                 <StyledView className="py-4">
                     {isLoading ? (
                         <StyledView className="space-y-2">
@@ -175,7 +167,14 @@ export default function CommunityTab() {
 
             <StyledTouchableOpacity
                 onPress={() => router.push("/write-post")}
-                className="absolute bottom-6 right-6 w-14 h-14 rounded-full bg-indigo-600 items-center justify-center shadow-lg"
+                className="absolute bottom-6 right-6 w-14 h-14 rounded-full bg-indigo-600 items-center justify-center"
+                style={{
+                    shadowColor: "#312e81",
+                    shadowOpacity: 0.25,
+                    shadowRadius: 12,
+                    shadowOffset: { width: 0, height: 8 },
+                    elevation: 10,
+                }}
             >
                 <Edit3 size={24} color="white" />
             </StyledTouchableOpacity>

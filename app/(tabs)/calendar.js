@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react-native";
+import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { collection, getDocs, orderBy, query, limit, setDoc, doc, Timestamp, deleteDoc } from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
@@ -66,7 +66,6 @@ export default function CalendarTab() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [activeTab, setActiveTab] = useState("모든 이벤트");
     const [selectedDate, setSelectedDate] = useState(new Date());
-    const [showDetail, setShowDetail] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
     const [newEventTitle, setNewEventTitle] = useState("");
     const [newEventDescription, setNewEventDescription] = useState("");
@@ -121,6 +120,7 @@ export default function CalendarTab() {
     }, [allEvents, activeTab, userId]);
 
     const visibleEvents = filteredEvents;
+    const today = new Date();
 
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
@@ -170,14 +170,8 @@ export default function CalendarTab() {
     );
 
     const handleDayPress = (day) => {
-        if (selectedDate && isSameDay(day, selectedDate)) {
-            setSelectedDate(null);
-            setShowDetail(false);
-            return;
-        }
         setSelectedDate(day);
         setNewEventDate(day);
-        setShowDetail(true);
     };
 
     const handleAddEventPress = (date = selectedDate || new Date()) => {
@@ -255,7 +249,6 @@ export default function CalendarTab() {
             });
             await queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
             setSelectedDate(finalDate);
-            setShowDetail(true);
             setShowAddModal(false);
             resetEventForm();
             Alert.alert("저장 완료", "일정이 캘린더에 추가되었습니다.");
@@ -341,13 +334,16 @@ export default function CalendarTab() {
                                 }`}
                         >
                             <StyledText
-                                className={`text-sm font-medium ${activeTab === tab ? "text-indigo-600" : "text-gray-500"
+                                className={`text-sm font-medium ${activeTab === tab ? "text-indigo-600" : "text-gray-400"
                                     }`}
                             >
                                 {tab}
                             </StyledText>
                         </StyledTouchableOpacity>
                     ))}
+                </StyledView>
+                <StyledView className="flex-row justify-end pt-3">
+                    <ColorLegend compact />
                 </StyledView>
             </StyledView>
 
@@ -369,49 +365,42 @@ export default function CalendarTab() {
                     ))}
                     {daysInMonth.map((day) => {
                         const dayEvents = getEventsForDay(day);
-                        const isToday = isSameDay(day, new Date());
+                        const isToday = isSameDay(day, today);
                         const isSelected = selectedDate && isSameDay(day, selectedDate);
-                        const cellClasses = isToday
-                            ? "bg-indigo-600"
-                            : isSelected
-                                ? "bg-indigo-50 border border-indigo-200"
-                                : "bg-white border border-gray-100";
-                        const dateColor = isToday ? "text-white" : isSelected ? "text-indigo-600" : "text-gray-900";
+                        const highlight = isToday || isSelected;
+                        const dayCategories = Array.from(
+                            new Set(dayEvents.map((event) => getEventCategory(event)))
+                        ).slice(0, 3);
                         return (
-                            <StyledView key={day.toISOString()} style={{ width: `${100 / 7}%`, aspectRatio: 1 }} className="p-1">
+                            <StyledView
+                                key={day.toISOString()}
+                                style={{ width: `${100 / 7}%`, aspectRatio: 1 }}
+                                className="p-1"
+                            >
                                 <StyledTouchableOpacity
-                                    className="flex-1"
+                                    className="flex-1 items-center justify-start py-2"
                                     onPress={() => handleDayPress(day)}
                                     onLongPress={() => router.push(`/calendar-day/${day.toISOString()}`)}
                                 >
                                     <StyledView
-                                        className={`flex-1 rounded-lg p-1 items-center ${cellClasses}`}
+                                        className={`h-9 w-9 items-center justify-center rounded-full ${highlight ? "bg-indigo-600" : ""
+                                            }`}
                                     >
                                         <StyledText
-                                            className={`text-sm font-semibold ${dateColor}`}
+                                            className={`text-sm font-semibold ${highlight ? "text-white" : "text-gray-900"
+                                                }`}
                                         >
                                             {format(day, "d")}
                                         </StyledText>
-                                        <StyledView className="mt-1 w-full">
-                                            {dayEvents.slice(0, 3).map((event) => {
-                                                const category = getEventCategory(event);
-                                                return (
-                                                    <StyledText
-                                                        key={event.id}
-                                                        className={`text-[8px] text-center rounded px-1 mb-0.5 ${isToday
-                                                                ? "text-white bg-white/20"
-                                                                : eventColors[category]?.badge || "bg-gray-100 text-gray-600"
-                                                            }`}
-                                                        numberOfLines={1}
-                                                    >
-                                                        {event.title}
-                                                    </StyledText>
-                                                );
-                                            })}
-                                            {dayEvents.length > 3 && (
-                                                <StyledText className="text-[8px] text-center text-indigo-600">view more</StyledText>
-                                            )}
-                                        </StyledView>
+                                    </StyledView>
+                                    <StyledView className="flex-row flex-wrap justify-center mt-1">
+                                        {dayCategories.map((category) => (
+                                            <StyledView
+                                                key={`${day.toISOString()}-${category}`}
+                                                className={`h-1.5 w-1.5 rounded-full mx-0.5 ${eventColors[category]?.dot || "bg-gray-300"
+                                                    }`}
+                                            />
+                                        ))}
                                     </StyledView>
                                 </StyledTouchableOpacity>
                             </StyledView>
@@ -419,7 +408,7 @@ export default function CalendarTab() {
                     })}
                 </StyledView>
 
-                {showDetail && selectedDate && (
+                {selectedDate && (
                     <StyledView className="border border-gray-200 rounded-2xl mt-4 bg-white">
                         <StyledView className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100 rounded-t-2xl">
                             <StyledText className="text-base font-bold text-gray-900">
@@ -494,10 +483,6 @@ export default function CalendarTab() {
                     </StyledView>
                 )}
             </StyledScrollView>
-
-            <StyledView className="border-t border-gray-100 bg-white px-4 py-2">
-                <ColorLegend compact />
-            </StyledView>
 
             <Modal visible={showAddModal} animationType="slide" transparent onRequestClose={() => setShowAddModal(false)}>
                 <StyledView className="flex-1 bg-black/40 justify-end">

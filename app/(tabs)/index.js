@@ -9,13 +9,15 @@ import { db, auth } from '../../firebaseConfig';
 import { Button } from '../../components/ui/button';
 import { Search, Bell } from 'lucide-react-native';
 import NewsCard from '../../components/NewsCard';
-import StockTicker from '../../components/StockTicker';
 import { Skeleton } from '../../components/ui/skeleton';
 import { styled } from 'nativewind';
 import MarketIndexGuideModal from '../../components/MarketIndexGuideModal';
 import { useMarketIndices } from '../../hooks/useMarketIndices';
 import { useKeyboardVisible } from '../../hooks/useKeyboardVisible';
 import { usePushNotificationsContext } from '../../context/PushNotificationsContext';
+import { BlurView } from 'expo-blur';
+import AIBriefingCard from '../../components/AIBriefingCard';
+import MarketMarquee from '../../components/MarketMarquee';
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
@@ -28,7 +30,12 @@ export default function Home() {
     const insets = useSafeAreaInsets();
     const tabBarHeight = useBottomTabBarHeight();
     const [showIndexModal, setShowIndexModal] = useState(false);
-    const { indices: displayIndices } = useMarketIndices();
+    const {
+        indices: displayIndices,
+        lastUpdatedAt: indexUpdatedAt,
+        refetch: refetchMarketIndices,
+        isFetching: isFetchingIndices,
+    } = useMarketIndices();
     const keyboardVisible = useKeyboardVisible();
     const [selectedIndexId, setSelectedIndexId] = useState(displayIndices[0]?.id ?? 'nasdaq');
     const {
@@ -162,25 +169,15 @@ export default function Home() {
         setShowIndexModal(true);
     };
 
-    const bottomInset = useMemo(() => Math.max(insets.bottom, 16), [insets.bottom]);
-    const showIndexBar = displayIndices.length > 0 && !keyboardVisible;
-    const indexBarHeight = 76;
-    const safeTabBarHeight = Number.isFinite(tabBarHeight) ? tabBarHeight : 0;
-    const tabBarVisibleHeight = Math.max(safeTabBarHeight - bottomInset, 0);
-    const baseBottomOffset = tabBarVisibleHeight + bottomInset;
-    const tickerBottomOffset = Math.max(tabBarVisibleHeight, 0) + 8;
-    const scrollPaddingBottom = showIndexBar ? baseBottomOffset + indexBarHeight + 32 : baseBottomOffset + 32;
-
     const { data: dailyBriefing } = useQuery({
         queryKey: ['dailyBriefing'],
         queryFn: async () => {
             try {
                 const q = query(collection(db, 'daily_briefings'), orderBy('created_at', 'desc'), limit(1));
                 const snapshot = await getDocs(q);
-                if (!snapshot.empty) {
-                    return snapshot.docs[0].data().content;
-                }
-                return null;
+                if (snapshot.empty) return null;
+                const docSnapshot = snapshot.docs[0];
+                return { id: docSnapshot.id, ...docSnapshot.data() };
             } catch (e) {
                 console.log("Error fetching briefing", e);
                 return null;
@@ -188,11 +185,22 @@ export default function Home() {
         }
     });
 
+    const bottomInset = useMemo(() => Math.max(insets.bottom, 16), [insets.bottom]);
+    const shouldShowMarquee = displayIndices.length > 0 && !keyboardVisible;
+    const safeTabBarHeight = Number.isFinite(tabBarHeight) ? tabBarHeight : 0;
+    const tabBarVisibleHeight = Math.max(safeTabBarHeight - bottomInset, 0);
+    const baseBottomOffset = tabBarVisibleHeight + bottomInset;
+    const scrollPaddingBottom = baseBottomOffset + 32;
+    const briefingContent = typeof dailyBriefing === "string" ? dailyBriefing : dailyBriefing?.content;
+    const briefingDate = dailyBriefing?.created_at?.seconds
+        ? new Date(dailyBriefing.created_at.seconds * 1000)
+        : new Date();
+
     return (
         <StyledSafeAreaView edges={['top']} className="flex-1 bg-white">
 
             {/* Header */}
-            <StyledView className="bg-white z-10 border-b border-gray-100 px-4 py-3">
+            <StyledView className="bg-white/95 z-10 border-b border-gray-100 px-4 py-3 backdrop-blur">
                 <StyledView className="flex-row items-center justify-between mb-3">
                     <StyledText className="text-xl font-bold text-gray-900">홈</StyledText>
                     <Button
@@ -210,34 +218,48 @@ export default function Home() {
                         </StyledView>
                     </Button>
                 </StyledView>
-                <StyledTouchableOpacity
-                    onPress={() => router.push('/search')}
-                    className="flex-row items-center bg-gray-50 border border-gray-100 rounded-full h-11 px-4 mb-3"
-                    activeOpacity={0.8}
+                <View
+                    style={{
+                        borderRadius: 999,
+                        marginBottom: 12,
+                        shadowColor: "#0f172a",
+                        shadowOffset: { width: 0, height: 10 },
+                        shadowOpacity: 0.08,
+                        shadowRadius: 18,
+                        elevation: 8,
+                    }}
                 >
-                    <Search size={16} color="#9ca3af" />
-                    <StyledText className="ml-2 text-sm text-gray-500">
-                        뉴스 · 커뮤니티 · 공모전 검색
-                    </StyledText>
-                </StyledTouchableOpacity>
+                    <BlurView intensity={45} tint="light" style={{ borderRadius: 999, overflow: 'hidden' }}>
+                        <StyledTouchableOpacity
+                            onPress={() => router.push('/search')}
+                            className="flex-row items-center h-11 px-4"
+                            activeOpacity={0.8}
+                        >
+                            <Search size={16} color="#7c3aed" />
+                            <StyledText className="ml-2 text-sm text-gray-500">
+                                뉴스 · 커뮤니티 · 공모전 검색
+                            </StyledText>
+                        </StyledTouchableOpacity>
+                    </BlurView>
+                </View>
             </StyledView>
 
             <StyledScrollView className="flex-1" contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}>
-                {/* Today's News Summary */}
-                {dailyBriefing && (
-                    <StyledView className="px-4 py-6 bg-indigo-50 border-b border-gray-100">
-                        <StyledText className="text-lg font-bold text-gray-900 mb-2">오늘의 뉴스 요약</StyledText>
-                        <StyledText className="text-sm text-gray-700 leading-6">
-                            {dailyBriefing}
-                        </StyledText>
-                        <StyledText className="text-xs text-indigo-600 mt-3 font-semibold">
-                            AI가 정리한 최신 경제 브리핑입니다.
-                        </StyledText>
-                    </StyledView>
+                {briefingContent && (
+                    <AIBriefingCard content={briefingContent} createdAt={briefingDate} />
                 )}
 
-                {/* Related News */}
-                <StyledView className="px-4 py-4">
+                {shouldShowMarquee && (
+                    <MarketMarquee
+                        indices={displayIndices}
+                        onChipPress={handleOpenIndexModal}
+                        onRefresh={refetchMarketIndices}
+                        isRefreshing={isFetchingIndices}
+                        lastUpdatedAt={indexUpdatedAt}
+                    />
+                )}
+
+                <StyledView className="px-4 py-6">
                     <StyledText className="text-xl font-bold text-gray-900 mb-4">최신 경제 인사이트</StyledText>
                     <StyledView className="space-y-2">
                         {newsLoading ? (
@@ -255,19 +277,25 @@ export default function Home() {
                                 </StyledView>
                             ))
                         ) : (
-                            <StyledView className="py-10 items-center justify-center">
-                                <StyledText className="text-gray-500">등록된 뉴스가 없습니다.</StyledText>
+                            <StyledView className="py-12 items-center justify-center">
+                                <StyledText className="text-4xl mb-2">😴</StyledText>
+                                <StyledText className="text-base font-semibold text-gray-900 mb-1">
+                                    모든 소식을 따라잡았어요
+                                </StyledText>
+                                <StyledText className="text-sm text-gray-500 mb-1 text-center">
+                                    새로운 이슈가 생기면 바로 알려드릴게요.
+                                </StyledText>
+                                <StyledText className="text-xs text-gray-400 mb-4 text-center">
+                                    No news is good news... 잠시 숨을 고르세요.
+                                </StyledText>
+                                <Button variant="outline" onPress={refetchNews}>
+                                    새로고침
+                                </Button>
                             </StyledView>
                         )}
                     </StyledView>
                 </StyledView>
             </StyledScrollView>
-
-            {showIndexBar && (
-                <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
-                    <StockTicker indices={displayIndices} onPressIndex={handleOpenIndexModal} />
-                </View>
-            )}
 
             <MarketIndexGuideModal
                 visible={showIndexModal}

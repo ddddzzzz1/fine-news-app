@@ -1,5 +1,16 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Image, Modal, ActivityIndicator } from "react-native";
+import {
+    View,
+    Text,
+    ScrollView,
+    TouchableOpacity,
+    TextInput,
+    Alert,
+    Image,
+    Modal,
+    KeyboardAvoidingView,
+    Platform,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -18,17 +29,17 @@ import {
     serverTimestamp,
 } from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
-import { ArrowLeft, Heart, RefreshCw, Flag } from "lucide-react-native";
+import { ArrowLeft, Heart, MoreVertical, Send } from "lucide-react-native";
 import { Button } from "../../components/ui/button";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import { BlurView } from "expo-blur";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 const StyledScrollView = styled(ScrollView);
 const StyledView = styled(View);
 const StyledText = styled(Text);
 const StyledImage = styled(Image);
-const StyledActivityIndicator = styled(ActivityIndicator);
 
 export default function CommunityDetail() {
     const router = useRouter();
@@ -47,7 +58,7 @@ export default function CommunityDetail() {
     const [editBoardType, setEditBoardType] = useState(boardTypes[0]);
     const [reportTarget, setReportTarget] = useState(null);
     const [isSubmittingReport, setIsSubmittingReport] = useState(false);
-    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isActionSheetVisible, setIsActionSheetVisible] = useState(false);
     const REPORT_REASONS = [
         { label: "스팸/광고", value: "spam" },
         { label: "욕설/혐오 표현", value: "abusive" },
@@ -55,7 +66,7 @@ export default function CommunityDetail() {
         { label: "기타 정책 위반", value: "policy" },
     ];
 
-    const { data: post, isLoading, isFetching, refetch } = useQuery({
+    const { data: post, isLoading } = useQuery({
         queryKey: ["community-post", id],
         queryFn: async () => {
             if (!id) return null;
@@ -80,6 +91,12 @@ export default function CommunityDetail() {
         post?.image_meta?.width && post?.image_meta?.height
             ? post.image_meta.width / post.image_meta.height
             : 4 / 3;
+    const authorDisplayName =
+        post?.author_display ||
+        post?.author_name ||
+        post?.nickname ||
+        (post?.created_by ? post.created_by.split("@")[0] : "익명");
+    const authorInitial = authorDisplayName?.[0]?.toUpperCase() || "U";
 
     const handleLike = async () => {
         if (!post?.id) return;
@@ -219,6 +236,42 @@ export default function CommunityDetail() {
         setReportTarget(null);
     };
 
+    const startPostEdit = () => {
+        if (!post) return;
+        setEditTitle(post.title || "");
+        setEditContent(post.content || "");
+        setEditBoardType(post.board_type || boardTypes[0]);
+        setIsPostEditing(true);
+        setIsActionSheetVisible(false);
+    };
+
+    const cancelPostEdit = () => {
+        setIsPostEditing(false);
+    };
+
+    const savePostEdit = async () => {
+        if (!post?.id || !editTitle.trim() || !editContent.trim()) {
+            Alert.alert("게시글 수정", "제목과 내용을 입력해주세요.");
+            return;
+        }
+        try {
+            await updateDoc(doc(db, "community_posts", post.id), {
+                title: editTitle.trim(),
+                content: editContent.trim(),
+                board_type: editBoardType,
+                updated_at: Timestamp.fromDate(new Date()),
+            });
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["community-post", post.id] }),
+                queryClient.invalidateQueries({ queryKey: ["tab-community-posts"] }),
+            ]);
+            setIsPostEditing(false);
+        } catch (error) {
+            console.log("Failed to edit post", error);
+            Alert.alert("오류", "게시글을 수정하지 못했습니다.");
+        }
+    };
+
     const submitReport = async (reason) => {
         if (!reportTarget || !post?.id || !reason || isSubmittingReport) return;
         setIsSubmittingReport(true);
@@ -255,20 +308,11 @@ export default function CommunityDetail() {
         }
     };
 
-    const refreshPost = async () => {
-        if (isRefreshing || (isFetching && !isLoading)) return;
-        if (!id) return;
-        setIsRefreshing(true);
-        try {
-            const result = await refetch();
-            if (result?.error) {
-                Alert.alert("오류", "게시글을 새로 고치지 못했어요. 잠시 후 다시 시도해 주세요.");
-            }
-        } catch (error) {
-            console.log("Failed to refresh post", error);
-            Alert.alert("오류", "게시글을 새로 고치지 못했어요. 잠시 후 다시 시도해 주세요.");
-        } finally {
-            setIsRefreshing(false);
+    const handleOpenActions = () => {
+        if (isAuthor) {
+            setIsActionSheetVisible(true);
+        } else {
+            openReportSheet({ type: "post" });
         }
     };
 
@@ -298,87 +342,13 @@ export default function CommunityDetail() {
                 <Button variant="ghost" size="icon" className="rounded-full" onPress={() => router.back()}>
                     <ArrowLeft size={22} color="#111827" />
                 </Button>
-                <StyledView className="flex-row items-center space-x-2">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onPress={refreshPost}
-                        disabled={isRefreshing || (isFetching && !isLoading)}
-                        className="rounded-full"
-                        accessibilityLabel="게시글 새로고침"
-                    >
-                        {isRefreshing || (isFetching && !isLoading) ? (
-                            <StyledActivityIndicator size="small" color="#4B5563" />
-                        ) : (
-                            <RefreshCw size={20} color="#111827" />
-                        )}
-                    </Button>
-                    {isAuthor ? (
-                        <StyledView className="flex-row space-x-2">
-                            {isPostEditing ? (
-                                <>
-                                    <Button variant="ghost" onPress={async () => {
-                                        if (!post?.id || !editTitle.trim() || !editContent.trim()) {
-                                            Alert.alert("게시글 수정", "제목과 내용을 입력해주세요.");
-                                            return;
-                                        }
-                                        try {
-                                            await updateDoc(doc(db, "community_posts", post.id), {
-                                                title: editTitle.trim(),
-                                                content: editContent.trim(),
-                                                board_type: editBoardType,
-                                                updated_at: Timestamp.fromDate(new Date()),
-                                            });
-                                            await Promise.all([
-                                                queryClient.invalidateQueries({ queryKey: ["community-post", post.id] }),
-                                                queryClient.invalidateQueries({ queryKey: ["tab-community-posts"] }),
-                                            ]);
-                                            setIsPostEditing(false);
-                                        } catch (error) {
-                                            console.log("Failed to edit post", error);
-                                            Alert.alert("오류", "게시글을 수정하지 못했습니다.");
-                                        }
-                                    }}>
-                                        <StyledText className="text-sm text-indigo-600">저장</StyledText>
-                                    </Button>
-                                    <Button variant="ghost" onPress={() => setIsPostEditing(false)}>
-                                        <StyledText className="text-sm text-gray-500">취소</StyledText>
-                                    </Button>
-                                </>
-                            ) : (
-                                <>
-                                    <Button
-                                        variant="ghost"
-                                        onPress={() => {
-                                            setEditTitle(post.title || "");
-                                            setEditContent(post.content || "");
-                                            setEditBoardType(post.board_type || boardTypes[0]);
-                                            setIsPostEditing(true);
-                                        }}
-                                    >
-                                        <StyledText className="text-sm text-indigo-600">수정</StyledText>
-                                    </Button>
-                                    <Button variant="ghost" onPress={handleDeletePost} className="rounded-full">
-                                        <StyledText className="text-sm text-red-500">삭제</StyledText>
-                                    </Button>
-                                </>
-                            )}
-                        </StyledView>
-                    ) : (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onPress={() => openReportSheet({ type: "post" })}
-                            className="rounded-full"
-                            accessibilityLabel="게시글 신고"
-                        >
-                            <Flag size={20} color="#EF4444" />
-                        </Button>
-                    )}
-                </StyledView>
+                <StyledText className="text-sm font-semibold text-gray-800">{post.board_type || "커뮤니티"}</StyledText>
+                <Button variant="ghost" size="icon" className="rounded-full" onPress={handleOpenActions}>
+                    <MoreVertical size={22} color="#111827" />
+                </Button>
             </StyledView>
 
-            <StyledScrollView className="flex-1 px-4 py-4">
+            <StyledScrollView className="flex-1 px-4 py-4" contentContainerStyle={{ paddingBottom: 200 }}>
                 {isPostEditing ? (
                     <>
                         <TextInput
@@ -407,13 +377,32 @@ export default function CommunityDetail() {
                             textAlignVertical="top"
                             className="border border-gray-200 rounded-lg px-3 py-2 min-h-[200px] text-base mb-4"
                         />
+                        <StyledView className="flex-row space-x-3">
+                            <Button className="flex-1 rounded-full" onPress={savePostEdit}>
+                                저장
+                            </Button>
+                            <Button className="flex-1 rounded-full" variant="outline" onPress={cancelPostEdit}>
+                                취소
+                            </Button>
+                        </StyledView>
                     </>
                 ) : (
                     <>
-                        <StyledText className="text-xl font-bold text-gray-900 mb-2">{post.title}</StyledText>
-                        <StyledText className="text-sm text-gray-500 mb-4">
-                            {post.university} · {post.board_type} ·{" "}
-                            {createdDate ? format(createdDate, "yy.MM.dd", { locale: ko }) : "날짜 미정"}
+                        <StyledView className="flex-row items-center mb-4">
+                            <StyledView className="w-12 h-12 rounded-full bg-indigo-100 items-center justify-center">
+                                <StyledText className="text-indigo-600 text-lg font-bold">{authorInitial}</StyledText>
+                            </StyledView>
+                            <StyledView className="ml-3 flex-1">
+                                <StyledText className="text-base font-semibold text-gray-900">{authorDisplayName}</StyledText>
+                                <StyledText className="text-xs text-gray-500 mt-0.5">
+                                    {post.university || "캠퍼스 미정"} ·{" "}
+                                    {createdDate ? format(createdDate, "yy.MM.dd HH:mm", { locale: ko }) : "시간 미정"}
+                                </StyledText>
+                            </StyledView>
+                        </StyledView>
+                        <StyledText className="text-2xl font-black text-gray-900 mb-2">{post.title}</StyledText>
+                        <StyledText className="text-xs font-semibold text-indigo-500 uppercase tracking-widest mb-4">
+                            #{post.board_type || "게시판"}
                         </StyledText>
 
                         {/* Image Gallery */}
@@ -439,7 +428,7 @@ export default function CommunityDetail() {
 
                         <StyledView className="mb-6">
                             {post.content?.split("\n").map((line, idx) => (
-                                <StyledText key={idx} className="text-base text-gray-800 mb-2 leading-6">
+                                <StyledText key={idx} className="text-base text-gray-800 mb-3 leading-7">
                                     {line}
                                 </StyledText>
                             ))}
@@ -448,16 +437,16 @@ export default function CommunityDetail() {
                 )}
 
                 <StyledView className="flex-row items-center justify-between mb-6">
-                    {!isAuthor && (
-                        <TouchableOpacity
-                            onPress={handleLike}
-                            className="flex-row items-center space-x-2 px-4 py-2 rounded-full border border-indigo-200"
-                        >
-                            <Heart size={18} color={hasLiked ? "#ef4444" : "#4b5563"} fill={hasLiked ? "#ef4444" : "transparent"} />
-                            <StyledText className="text-sm text-gray-900">{likeCount}</StyledText>
-                        </TouchableOpacity>
-                    )}
-                    <StyledText className="text-xs text-indigo-500">{likeCount > 5 ? "인기글" : ""}</StyledText>
+                    <TouchableOpacity
+                        onPress={handleLike}
+                        className={`flex-row items-center space-x-2 px-4 py-2 rounded-full border ${hasLiked ? "border-rose-200 bg-rose-50" : "border-gray-200"}`}
+                    >
+                        <Heart size={18} color={hasLiked ? "#ef4444" : "#4b5563"} fill={hasLiked ? "#ef4444" : "transparent"} />
+                        <StyledText className="text-sm text-gray-900">{likeCount}</StyledText>
+                    </TouchableOpacity>
+                    <StyledText className="text-xs text-indigo-500">
+                        {post.comment_count ?? post.comments?.length ?? 0}개의 대화
+                    </StyledText>
                 </StyledView>
 
                 {!isPostEditing && (
@@ -465,23 +454,6 @@ export default function CommunityDetail() {
                         <StyledText className="text-base font-bold text-gray-900 mb-3">
                             댓글 {post.comment_count ?? post.comments?.length ?? 0}
                         </StyledText>
-                        <StyledView className="mb-4">
-                            <TextInput
-                                value={comment}
-                                onChangeText={setComment}
-                                placeholder="댓글을 입력해주세요"
-                                multiline
-                                editable={!!userId}
-                                className="border border-gray-200 rounded-lg px-3 py-2 min-h-[60px] text-base"
-                            />
-                            <Button
-                                className="mt-2 h-10 rounded-full"
-                                onPress={handleAddComment}
-                                disabled={!userId || isCommenting}
-                            >
-                                {!userId ? "로그인 필요" : isCommenting ? "등록 중..." : "댓글 등록"}
-                            </Button>
-                        </StyledView>
                         {comments.length ? (
                             comments.map((item) => {
                                 const date = item.created_at
@@ -603,6 +575,80 @@ export default function CommunityDetail() {
                     </StyledView>
                 )}
             </StyledScrollView>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+            >
+                <BlurView intensity={85} tint="light" className="border-t border-gray-200/60">
+                    <StyledView className="flex-row items-end p-3 space-x-3">
+                        <StyledView className="flex-1 bg-gray-50/90 rounded-3xl px-4 py-2.5 border border-gray-200 flex-row">
+                            <TextInput
+                                placeholder={userId ? "댓글을 남겨보세요" : "로그인 후 댓글을 작성할 수 있어요"}
+                                placeholderTextColor="#9ca3af"
+                                multiline
+                                editable={!!userId && !isCommenting}
+                                value={comment}
+                                onChangeText={setComment}
+                                className="flex-1 text-base text-gray-900"
+                                style={{ paddingTop: 0, paddingBottom: 0, minHeight: 24 }}
+                            />
+                        </StyledView>
+                        <TouchableOpacity
+                            onPress={handleAddComment}
+                            disabled={!userId || !comment.trim() || isCommenting}
+                            className={`w-12 h-12 rounded-full items-center justify-center ${
+                                userId && comment.trim() && !isCommenting ? "bg-indigo-600 shadow-lg shadow-indigo-400/50" : "bg-gray-200"
+                            }`}
+                        >
+                            <Send
+                                size={20}
+                                color={userId && comment.trim() && !isCommenting ? "#ffffff" : "#9ca3af"}
+                                strokeWidth={2.3}
+                            />
+                        </TouchableOpacity>
+                    </StyledView>
+                </BlurView>
+            </KeyboardAvoidingView>
+            <Modal transparent visible={isActionSheetVisible} animationType="fade" onRequestClose={() => setIsActionSheetVisible(false)}>
+                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" }}>
+                    <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setIsActionSheetVisible(false)} />
+                    <StyledView className="bg-white rounded-t-3xl px-5 pt-5 pb-6">
+                        <StyledText className="text-base font-semibold text-gray-900 mb-4">게시글 옵션</StyledText>
+                        {isAuthor ? (
+                            <>
+                                <TouchableOpacity
+                                    className="py-3 border-b border-gray-100"
+                                    onPress={startPostEdit}
+                                >
+                                    <StyledText className="text-sm text-gray-900">게시글 수정</StyledText>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    className="py-3 border-b border-gray-100"
+                                    onPress={() => {
+                                        setIsActionSheetVisible(false);
+                                        handleDeletePost();
+                                    }}
+                                >
+                                    <StyledText className="text-sm text-red-500">게시글 삭제</StyledText>
+                                </TouchableOpacity>
+                            </>
+                        ) : (
+                            <TouchableOpacity
+                                className="py-3 border-b border-gray-100"
+                                onPress={() => {
+                                    setIsActionSheetVisible(false);
+                                    openReportSheet({ type: "post" });
+                                }}
+                            >
+                                <StyledText className="text-sm text-red-500">게시글 신고</StyledText>
+                            </TouchableOpacity>
+                        )}
+                        <Button variant="ghost" className="mt-4 rounded-full" onPress={() => setIsActionSheetVisible(false)}>
+                            닫기
+                        </Button>
+                    </StyledView>
+                </View>
+            </Modal>
             <Modal transparent visible={!!reportTarget} animationType="fade" onRequestClose={closeReportSheet}>
                 <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" }}>
                     <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeReportSheet} />

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, Share, Alert, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -15,6 +15,8 @@ import RenderHtml from 'react-native-render-html';
 import { styled } from 'nativewind';
 import { auth } from '../../firebaseConfig';
 import { Edit } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
@@ -32,6 +34,27 @@ const toDate = (value) => {
     }
     const parsed = new Date(value);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const parseKeyPointPairs = (raw) => {
+    if (typeof raw === "object" && raw !== null) {
+        return raw;
+    }
+    if (typeof raw === "string") {
+        return raw
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .map((line) => {
+                const [label, ...rest] = line.split(':');
+                return {
+                    label: label?.trim() || "",
+                    value: rest.join(':').trim(),
+                };
+            })
+            .filter((item) => item.label && item.value);
+    }
+    return null;
 };
 
 export default function NewsDetail() {
@@ -217,12 +240,7 @@ export default function NewsDetail() {
 
                 {/* Key Data Points */}
                 {news.key_data_points && (
-                    <StyledView className="bg-indigo-50 rounded-xl p-4 mb-6 border border-indigo-100">
-                        <StyledText className="text-sm font-bold text-indigo-900 mb-2">💡 핵심 포인트</StyledText>
-                        <StyledText className="text-base text-indigo-900 leading-6 font-medium">
-                            {news.key_data_points}
-                        </StyledText>
-                    </StyledView>
+                    <KeyImpactCard text={news.key_data_points} />
                 )}
 
                 <StyledView className="mb-8">
@@ -230,42 +248,159 @@ export default function NewsDetail() {
                         <RenderHtml
                             contentWidth={width - 32}
                             source={{ html: news.content_html }}
-                            baseStyle={{ fontSize: 16, lineHeight: 24, color: '#374151' }}
+                            baseStyle={{ fontSize: 17, lineHeight: 28, color: '#1f2937' }}
                         />
                     ) : (
                         news.content?.split('\n\n').map((paragraph, index) => (
-                            <StyledText key={index} className="text-base text-gray-700 mb-4 leading-6">
+                            <StyledText key={index} className="text-[17px] text-gray-800 mb-5 leading-7">
                                 {paragraph}
                             </StyledText>
                         ))
                     )}
                 </StyledView>
 
-                {/* Related News Section (Simplified Sheet) */}
+                {/* Related News Section */}
                 <StyledView className="mt-8 mb-10">
-                    <Button
-                        className="w-full bg-indigo-600 rounded-full h-12 justify-center items-center"
-                        onPress={() => setShowRelated(!showRelated)}
+                    <TouchableOpacity
+                        className="flex-row items-center justify-between mb-3"
+                        onPress={() => setShowRelated((prev) => !prev)}
+                        activeOpacity={0.8}
                     >
-                        <StyledText className="text-white font-medium">
-                            {showRelated ? '관련 뉴스 접기' : '관련 뉴스레터 보기'}
-                        </StyledText>
-                    </Button>
+                        <StyledText className="text-lg font-bold text-gray-900">관련 뉴스레터</StyledText>
+                        <Ionicons
+                            name={showRelated ? "chevron-up" : "chevron-down"}
+                            size={20}
+                            color="#4b5563"
+                        />
+                    </TouchableOpacity>
 
                     {showRelated && (
-                        <StyledView className="mt-4">
-                            <StyledText className="text-lg font-bold mb-4">관련 뉴스레터</StyledText>
-                            <StyledView className="flex-row flex-wrap justify-between">
-                                {relatedNews?.map((relatedItem) => (
-                                    <StyledView key={relatedItem.id} className="w-[48%]">
-                                        <NewsCard news={relatedItem} />
-                                    </StyledView>
-                                ))}
-                            </StyledView>
+                        <StyledView className="flex-row flex-wrap justify-between">
+                            {relatedNews?.map((relatedItem) => (
+                                <StyledView key={relatedItem.id} className="w-[48%] mb-4">
+                                    <NewsCard news={relatedItem} />
+                                </StyledView>
+                            ))}
                         </StyledView>
                     )}
                 </StyledView>
             </StyledScrollView>
         </StyledSafeAreaView>
+    );
+}
+
+function KeyImpactCard({ text }) {
+    const parsed = parseKeyPointPairs(text);
+    if (!parsed) return null;
+
+    let primary = null;
+    let secondary = [];
+    let extra = [];
+
+    if (Array.isArray(parsed)) {
+        primary = parsed[0];
+        secondary = parsed.slice(1, 3);
+        extra = parsed.slice(3);
+    } else {
+        primary = parsed.hero || parsed.main || null;
+        if (!primary && typeof parsed === "object") {
+            const firstEntry = Array.isArray(parsed.details) ? parsed.details[0] : null;
+            primary = firstEntry || null;
+        }
+        secondary = Array.isArray(parsed.details) ? parsed.details.slice(0, 2) : [];
+        extra = Array.isArray(parsed.highlights)
+            ? parsed.highlights.map((item) => ({
+                  label: item.tag || "Highlight",
+                  value: item.text || "",
+              }))
+            : [];
+    }
+
+    if (!primary) return null;
+
+    const renderValue = (value = "") => {
+        if (typeof value !== "string") return value?.toString?.() || "";
+        return value.replace(/\(.*?\)/, "").trim();
+    };
+    const extractTag = (value = "") => {
+        if (typeof value !== "string") return null;
+        const match = value.match(/\((.+)\)/);
+        return match ? match[1] : null;
+    };
+
+    return (
+        <StyledView className="mb-6">
+            <LinearGradient
+                colors={["#eff6ff", "#eef2ff"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "#dbeafe" }}
+            >
+                <StyledView className="flex-row items-center mb-4">
+                    <Ionicons name="flash" size={16} color="#4338ca" />
+                    <StyledText className="text-[11px] font-bold text-indigo-700 ml-2">
+                        KEY IMPACT
+                    </StyledText>
+                </StyledView>
+
+                <StyledView className="mb-4 pb-4 border-b border-indigo-100">
+                    <StyledText className="text-xs uppercase tracking-wide text-indigo-500 mb-2">
+                        {primary.label || primary.title || "Key Metric"}
+                    </StyledText>
+                    <StyledView className="flex-row items-end flex-wrap">
+                        <StyledText className="text-4xl font-black text-gray-900">
+                            {renderValue(primary.value || primary.metric)}
+                        </StyledText>
+                        {(primary.unit || extractTag(primary.value || primary.metric)) && (
+                            <StyledText className="ml-2 mb-2 text-sm font-bold text-indigo-600">
+                                {primary.unit || extractTag(primary.value || primary.metric)}
+                            </StyledText>
+                        )}
+                    </StyledView>
+                    {primary.insight && (
+                        <StyledText className="text-xs text-indigo-600 mt-1 font-semibold">
+                            {primary.insight}
+                        </StyledText>
+                    )}
+                </StyledView>
+
+                {secondary.length > 0 && (
+                    <StyledView className="flex-row items-center">
+                        {secondary.map((item, idx) => (
+                            <React.Fragment key={`${item.label}-${idx}`}>
+                                {idx === 1 && <StyledView className="w-px h-12 bg-indigo-100" />}
+                                <StyledView className="flex-1 px-3">
+                                    <StyledText className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">
+                                        {item.label}
+                                    </StyledText>
+                                    <StyledText className="text-lg font-bold text-gray-900">
+                                        {renderValue(item.value)}
+                                        {extractTag(item.value) && (
+                                            <Text className="text-xs text-red-500 font-semibold"> ({extractTag(item.value)})</Text>
+                                        )}
+                                    </StyledText>
+                                    {item.note && (
+                                        <StyledText className="text-xs text-gray-500 mt-0.5">
+                                            {item.note}
+                                        </StyledText>
+                                    )}
+                                </StyledView>
+                            </React.Fragment>
+                        ))}
+                    </StyledView>
+                )}
+
+                {!!extra.length && (
+                    <StyledView className="mt-4 pt-3 border-t border-indigo-100">
+                        {extra.map((item, idx) => (
+                            <StyledText key={`${item.label}-${idx}`} className="text-sm text-gray-700 mb-1.5">
+                                <Text className="font-semibold text-gray-900">{item.label}: </Text>
+                                {item.value}
+                            </StyledText>
+                        ))}
+                    </StyledView>
+                )}
+            </LinearGradient>
+        </StyledView>
     );
 }

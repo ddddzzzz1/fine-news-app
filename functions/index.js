@@ -826,21 +826,40 @@ async function runNewsFactory() {
     The output is for an editor who will rewrite it, so focus on **accuracy, specific numbers, and facts**.
 
     Search Rules (Strict):
-    1. **Search Query:** Use keywords "한국 경제 속보", "기재부 발표 Today", "한은 금리 속보", "코스피 시황 오늘".
+    1. **Search Query:** Use latest news from South Korean economic news sources.
     2. **Time Filter:** You MUST check the article timestamp. If the news is not from [${currentDate}] or the previous 24 hours, **ignore it completely**.
     3. **Topic Selection:** Prioritize government policy changes, major corporate M&A/Earnings, or macroeconomic index releases over general opinion pieces.
 
     Output Requirement:
-    Return a JSON object containing **only** the content fields below. Do NOT include source names or URLs.
+    Return a JSON object with the schema below. Do NOT include source names or URLs and ensure every number is preserved exactly as shown in the source.
 
     {
-        "title": "string (A factual, dry headline in Korean)",
-        "summary": "string (3 bullet points highlighting the core issue)",
-        "content_html": "string (Rich HTML body. Use <b> for numbers and names. Focus on the 5W1H - Who, What, Where, When, Why, How)",
-        "content_text": "string (The full story text, ensuring all specific figures/statistics are preserved)",
-        "tags": ["array", "of", "strings", "related", "to", "industry"],
-        "key_data_points": "string (A distinct list of strictly numbers/quotes found in the text for the editor to double-check. e.g., 'Growth rate: 3.2%', 'Invested: 500 billion won')",
-        "published_date": "string (The original article publication time in 'YYYY-MM-DD HH:mm' format)"
+        "title": "string · factual, neutral headline in Korean",
+        "summary": "string · 3 bullet sentences separated by '\\n'",
+        "content_html": "string · Rich HTML body using <p>, <ul>, <b> (focus on 5W1H)",
+        "content_text": "string · Plain text version of the story",
+        "tags": ["Finance", "통화정책", "..."],
+        "published_date": "YYYY-MM-DD HH:mm (24h, KST)",
+        "key_data_points": {
+            "hero": {
+                "label": "e.g., 전산업생산",
+                "value": "-0.8%",
+                "unit": "MoM",
+                "insight": "세 달 만에 감소 전환"
+            },
+            "details": [
+                { "label": "반도체", "value": "-4.2%", "note": "수출 부진" },
+                { "label": "소비", "value": "-1.5%", "note": "재화 소비 위축" },
+                { "label": "설비투자", "value": "-2.2%", "note": "설비·건설 모두 부진" }
+            ],
+            "highlights": [
+                { "tag": "Production", "text": "전산업생산 3개월 만에 하락" }
+            ],
+            "timeline": [
+                { "emoji": "🏭", "step": "반도체 급감 (-4.2%)" },
+                { "emoji": "📉", "step": "전산업 생산 하락 (-0.8%)" }
+            ]
+        }
     }
     `;
 

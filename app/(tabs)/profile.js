@@ -7,7 +7,8 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
-import { ChevronRight, FileText, HelpCircle, LogOut, Bookmark, Bell, Shield, Settings } from "lucide-react-native";
+import { LogOut } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { signOut } from "firebase/auth";
 import { useRouter } from "expo-router";
 import { useNavigation } from "@react-navigation/native";
@@ -42,8 +43,7 @@ export default function Profile() {
         profile.english_name ||
         currentUser?.displayName ||
         (email ? email.split("@")[0] : "로그인이 필요합니다");
-    const university = currentUser?.photoURL || "";
-    const universityName = profile.university_name || university || "미등록";
+    const universityName = profile.university_name || "미등록";
     const verificationStatus = profile.verification_status || "unverified";
     const isVerifiedStudent = verificationStatus === "verified" || verificationStatus === "admin";
     const isPendingVerification = verificationStatus === "pending";
@@ -63,14 +63,9 @@ export default function Profile() {
         queryKey: ["profile-posts", email],
         queryFn: async () => {
             if (!email) return [];
-            try {
-                const q = query(collection(db, "community_posts"), where("created_by", "==", email));
-                const snapshot = await getDocs(q);
-                return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-            } catch (error) {
-                console.log("Error fetching my posts", error);
-                return [];
-            }
+            const q = query(collection(db, "community_posts"), where("created_by", "==", email));
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         },
         enabled: !!email,
         initialData: [],
@@ -80,14 +75,9 @@ export default function Profile() {
         queryKey: ["profile-saved-contests", userId],
         queryFn: async () => {
             if (!userId) return [];
-            try {
-                const q = query(collection(db, "saved_contests"), where("user_id", "==", userId));
-                const snapshot = await getDocs(q);
-                return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-            } catch (error) {
-                console.log("Error fetching saved contests", error);
-                return [];
-            }
+            const q = query(collection(db, "saved_contests"), where("user_id", "==", userId));
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         },
         enabled: !!userId,
         initialData: [],
@@ -103,22 +93,6 @@ export default function Profile() {
         };
     }, [navigation, refetchMyPosts, refetchSavedContests]);
 
-    const menuItems = [
-        { icon: FileText, label: "내 글", count: myPosts?.length || 0, action: () => router.push("/my-posts") },
-        { icon: Bookmark, label: "저장한 공고", count: savedContests?.length || 0, action: () => router.push("/saved-contests") },
-        { icon: Bell, label: "알림 설정", count: null, action: () => router.push("/notification-settings") },
-        { icon: HelpCircle, label: "도움말", count: null, action: () => router.push("/help") },
-        { icon: Settings, label: "설정", count: null, action: () => router.push("/settings") },
-    ];
-    if (isAdmin) {
-        menuItems.splice(0, 0, {
-            icon: Shield,
-            label: "신고 관리",
-            count: null,
-            action: () => router.push("/admin/reports"),
-        });
-    }
-
     const handleLogout = async () => {
         try {
             await signOut(auth);
@@ -132,103 +106,120 @@ export default function Profile() {
         router.push("/university-verification");
     };
 
+    const stats = [
+        { label: "작성 글", value: myPosts?.length || 0, action: () => router.push("/my-posts") },
+        { label: "댓글", value: profile.comment_count || 0, action: null },
+        { label: "저장", value: savedContests?.length || 0, action: () => router.push("/saved-contests") },
+    ];
+
+    const menuGroups = [
+        {
+            title: "내 활동",
+            items: [
+                { icon: "document-text-outline", label: "내 글", badge: myPosts?.length || 0, action: () => router.push("/my-posts"), color: "#4f46e5" },
+                { icon: "bookmark-outline", label: "저장한 공고", badge: savedContests?.length || 0, action: () => router.push("/saved-contests"), color: "#d97706" },
+                { icon: "notifications-outline", label: "알림 설정", action: () => router.push("/notification-settings"), color: "#dc2626" },
+            ],
+        },
+        {
+            title: "도움과 설정",
+            items: [
+                ...(isAdmin
+                    ? [{ icon: "shield-checkmark-outline", label: "신고 관리", action: () => router.push("/admin/reports"), color: "#059669" }]
+                    : []),
+                { icon: "help-circle-outline", label: "도움말", action: () => router.push("/help"), color: "#0ea5e9" },
+                { icon: "settings-outline", label: "설정", action: () => router.push("/settings"), color: "#4b5563" },
+            ],
+        },
+    ];
+
     return (
-        <StyledSafeAreaView edges={["top"]} className="flex-1 bg-gray-50">
-            <StyledScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 32 }}>
-                <StyledView className="bg-white border-b border-gray-100 px-4 py-3 flex-row items-center justify-between">
-                    <StyledText className="text-xl font-bold text-gray-900">마이</StyledText>
-                    <StyledView style={{ width: 40 }} />
-                </StyledView>
-
-                <StyledView className="bg-white px-6 py-6 mb-2">
-                    <StyledView className="flex-row items-center mb-4">
-                        <StyledView className="w-16 h-16 rounded-full bg-indigo-500 items-center justify-center">
-                            <StyledText className="text-white text-2xl font-bold">
-                                {displayName?.[0] || "U"}
-                            </StyledText>
-                        </StyledView>
-                        <StyledView className="ml-4 flex-1">
-                            <StyledView className="flex-row items-center mb-1">
-                                <StyledText className="text-xl font-bold text-gray-900 mr-2">{displayName}</StyledText>
-                                <Badge className={`${statusBadgeClass} text-xs`}>{statusText}</Badge>
+        <StyledSafeAreaView edges={["top"]} className="flex-1 bg-[#F9FAFB]">
+            <StyledScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 48 }}>
+                <StyledView className="bg-white rounded-b-[32px] border-b border-gray-100 shadow-sm pb-6 pt-4">
+                    <StyledView className="px-6">
+                        <StyledText className="text-2xl font-bold text-gray-900 mb-6">마이 페이지</StyledText>
+                        <StyledView className="flex-row items-center">
+                            <StyledView className="w-16 h-16 rounded-full bg-indigo-50 border border-indigo-100 items-center justify-center mr-4">
+                                <StyledText className="text-2xl font-bold text-indigo-600">{displayName?.[0] || "U"}</StyledText>
                             </StyledView>
-                            <StyledText className="text-sm font-semibold text-indigo-700 mb-1">{universityName}</StyledText>
-                            <StyledText className="text-sm text-gray-600">{email || "로그인이 필요합니다"}</StyledText>
+                            <StyledView className="flex-1">
+                                <StyledView className="flex-row items-center flex-wrap mb-1">
+                                    <StyledText className="text-xl font-bold text-gray-900 mr-2">{displayName}</StyledText>
+                                    <Badge className={`${statusBadgeClass} text-[10px]`}>{statusText}</Badge>
+                                </StyledView>
+                                <StyledText className="text-gray-500 text-sm">{email || "로그인이 필요합니다"}</StyledText>
+                            </StyledView>
+                            <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
+                        </StyledView>
+                        <StyledView className="flex-row items-center mt-6 px-2">
+                            {stats.map((stat, idx) => (
+                                <React.Fragment key={stat.label}>
+                                    {idx > 0 && <StyledView className="w-px h-10 bg-gray-200" />}
+                                    <StyledTouchableOpacity
+                                        onPress={stat.action}
+                                        disabled={!stat.action}
+                                        className="flex-1 items-center"
+                                        activeOpacity={0.8}
+                                    >
+                                        <StyledText className="text-xl font-bold text-gray-900">{stat.value}</StyledText>
+                                        <StyledText className="text-xs text-gray-400 font-medium mt-1">{stat.label}</StyledText>
+                                    </StyledTouchableOpacity>
+                                </React.Fragment>
+                            ))}
                         </StyledView>
                     </StyledView>
-                    {currentUser && !isVerifiedStudent && (
-                        <StyledView className="mt-2 p-3 rounded-2xl bg-amber-50 border border-amber-100">
-                            <StyledText className="text-xs text-amber-800 mb-2">
-                                학생 인증이 완료되어야 게시글 작성, 공모전 저장 등 주요 기능이 활성화됩니다.
-                                {isPendingVerification ? " 심사 중에는 관리자 검토를 기다려주세요." : ""}
-                            </StyledText>
-                            <Button
-                                className="rounded-full bg-amber-600"
-                                variant="default"
-                                onPress={handleRequestVerification}
-                            >
-                                {isPendingVerification ? "인증 심사 중" : "학생 인증하기"}
-                            </Button>
-                        </StyledView>
-                    )}
                 </StyledView>
 
-                <StyledView className="bg-white px-4 py-4 mb-2 flex-row">
-                    <StyledView className="flex-1 items-center">
-                        <StyledText className="text-2xl font-bold text-gray-900 mb-1">{myPosts?.length || 0}</StyledText>
-                        <StyledText className="text-xs text-gray-600">작성 글</StyledText>
-                    </StyledView>
-                    <StyledView className="flex-1 items-center border-l border-r border-gray-200">
-                        <StyledText className="text-2xl font-bold text-gray-900 mb-1">0</StyledText>
-                        <StyledText className="text-xs text-gray-600">댓글</StyledText>
-                    </StyledView>
-                    <StyledView className="flex-1 items-center">
-                        <StyledText className="text-2xl font-bold text-gray-900 mb-1">
-                            {savedContests?.length || 0}
+                {currentUser && !isVerifiedStudent && (
+                    <StyledView className="mx-5 mt-5 bg-white border border-amber-100 rounded-2xl p-4">
+                        <StyledText className="text-sm text-amber-800 mb-2">
+                            학생 인증을 완료하면 게시글 작성, 공모전 저장 등 주요 기능이 활성화됩니다.
+                            {isPendingVerification ? " 심사 중에는 관리자 검토를 기다려주세요." : ""}
                         </StyledText>
-                        <StyledText className="text-xs text-gray-600">저장한 공고</StyledText>
+                        <Button className="rounded-full" onPress={handleRequestVerification}>
+                            {isPendingVerification ? "인증 심사 중" : "학생 인증하기"}
+                        </Button>
                     </StyledView>
-                </StyledView>
+                )}
 
-                <StyledView className="bg-white">
-                    {menuItems.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                            <StyledTouchableOpacity
-                                key={item.label}
-                                className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100"
-                                onPress={item.action}
-                                disabled={!item.action || !currentUser}
-                            >
-                                <StyledView className="flex-row items-center space-x-3">
-                                    <Icon size={20} color="#4b5563" />
-                                    <StyledText className="text-base text-gray-900">{item.label}</StyledText>
-                                </StyledView>
-                                <StyledView className="flex-row items-center space-x-2">
-                                    {item.count !== null && (
-                                        <Badge variant="secondary" className="bg-gray-100 text-gray-600">
-                                            {item.count}
-                                        </Badge>
-                                    )}
-                                    <ChevronRight size={18} color="#9ca3af" />
-                                </StyledView>
-                            </StyledTouchableOpacity>
-                        );
-                    })}
+                <StyledView className="px-5 mt-6 space-y-6">
+                    {menuGroups.map((group) => (
+                        <StyledView key={group.title}>
+                            <StyledText className="text-sm font-semibold text-gray-500 mb-2">{group.title}</StyledText>
+                            <StyledView className="bg-white rounded-3xl border border-gray-100 p-2">
+                                {group.items.map((item, idx) => (
+                                    <TouchableOpacity
+                                        key={item.label}
+                                        onPress={item.action}
+                                        activeOpacity={0.8}
+                                        className={`flex-row items-center py-4 px-3 rounded-xl ${idx !== 0 ? "border-t border-gray-100" : ""}`}
+                                    >
+                                        <Ionicons name={item.icon} size={22} color={item.color} style={{ marginRight: 14 }} />
+                                        <StyledText className="flex-1 text-base font-medium text-gray-700">{item.label}</StyledText>
+                                        {typeof item.badge === "number" && (
+                                            <StyledView className="bg-gray-100 px-2.5 py-1 rounded-full mr-2">
+                                                <StyledText className="text-xs font-bold text-gray-600">{item.badge}</StyledText>
+                                            </StyledView>
+                                        )}
+                                        <Ionicons name="chevron-forward" size={16} color="#E5E7EB" />
+                                    </TouchableOpacity>
+                                ))}
+                            </StyledView>
+                        </StyledView>
+                    ))}
                 </StyledView>
 
                 {currentUser ? (
-                    <StyledView className="bg-white mt-2">
-                        <StyledTouchableOpacity
-                            onPress={handleLogout}
-                            className="flex-row items-center justify-center space-x-2 py-4"
-                        >
-                            <LogOut size={20} color="#ef4444" />
-                            <StyledText className="text-base font-semibold text-red-500">로그아웃</StyledText>
-                        </StyledTouchableOpacity>
-                    </StyledView>
+                    <StyledTouchableOpacity
+                        onPress={handleLogout}
+                        className="mx-5 mt-6 bg-red-50 rounded-2xl py-4 flex-row items-center justify-center space-x-2 border border-red-100"
+                    >
+                        <LogOut size={18} color="#ef4444" />
+                        <StyledText className="text-base font-semibold text-red-500">로그아웃</StyledText>
+                    </StyledTouchableOpacity>
                 ) : (
-                    <StyledView className="bg-white mt-2 px-4 py-6 items-center">
+                    <StyledView className="bg-white mt-6 mx-5 px-4 py-6 items-center rounded-2xl border border-gray-100">
                         <StyledText className="text-sm text-gray-600 mb-3">로그인하고 개인화된 정보를 확인하세요.</StyledText>
                         <Button className="rounded-full px-6" onPress={() => router.push("/login")}>
                             로그인하기
