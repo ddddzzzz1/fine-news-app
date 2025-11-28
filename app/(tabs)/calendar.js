@@ -278,7 +278,27 @@ export default function CalendarTab() {
                     try {
                         setDeletingEventId(event.id);
                         await deleteDoc(doc(db, "calendar_events", event.id));
-                        await queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
+
+                        // If this event is a saved contest (starts with 'saved-'), also remove from saved_contests
+                        if (event.id.startsWith("saved-")) {
+                            // Format: saved-{userId}-{contestId}
+                            const parts = event.id.split("-");
+                            if (parts.length >= 3) {
+                                const contestId = parts.slice(2).join("-"); // Handle contest IDs with hyphens
+                                const savedDocId = `${userId}_${contestId}`;
+                                try {
+                                    await deleteDoc(doc(db, "saved_contests", savedDocId));
+                                } catch (e) {
+                                    console.log("Failed to sync delete with saved_contests", e);
+                                }
+                            }
+                        }
+
+                        await Promise.all([
+                            queryClient.invalidateQueries({ queryKey: ["calendar-events"] }),
+                            queryClient.invalidateQueries({ queryKey: ["saved-contests", userId] }),
+                            queryClient.invalidateQueries({ queryKey: ["profile-saved-contests", userId] }),
+                        ]);
                         Alert.alert("삭제 완료", "일정을 삭제했습니다.");
                     } catch (error) {
                         console.log("Failed to delete personal event", error);
@@ -317,14 +337,12 @@ export default function CalendarTab() {
                         <StyledTouchableOpacity
                             key={tab}
                             onPress={() => setActiveTab(tab)}
-                            className={`flex-1 py-2 items-center ${
-                                activeTab === tab ? "border-b-2 border-indigo-600" : "border-b-2 border-transparent"
-                            }`}
+                            className={`flex-1 py-2 items-center ${activeTab === tab ? "border-b-2 border-indigo-600" : "border-b-2 border-transparent"
+                                }`}
                         >
                             <StyledText
-                                className={`text-sm font-medium ${
-                                    activeTab === tab ? "text-indigo-600" : "text-gray-500"
-                                }`}
+                                className={`text-sm font-medium ${activeTab === tab ? "text-indigo-600" : "text-gray-500"
+                                    }`}
                             >
                                 {tab}
                             </StyledText>
@@ -380,11 +398,10 @@ export default function CalendarTab() {
                                                 return (
                                                     <StyledText
                                                         key={event.id}
-                                                        className={`text-[8px] text-center rounded px-1 mb-0.5 ${
-                                                            isToday
+                                                        className={`text-[8px] text-center rounded px-1 mb-0.5 ${isToday
                                                                 ? "text-white bg-white/20"
                                                                 : eventColors[category]?.badge || "bg-gray-100 text-gray-600"
-                                                        }`}
+                                                            }`}
                                                         numberOfLines={1}
                                                     >
                                                         {event.title}
@@ -536,42 +553,40 @@ export default function CalendarTab() {
                         </StyledView>
                         <StyledView className="mb-4">
                             <StyledText className="text-xs text-gray-500 mb-1">카테고리</StyledText>
-                        <StyledView className="flex-row flex-wrap">
-                            {categoryOptions.map((option) => {
-                                const selected = newEventCategory === option;
-                                const disabled = option === "경제" && !isAdmin;
-                                return (
-                                    <StyledTouchableOpacity
-                                        key={option}
-                                        disabled={disabled}
-                                        className={`flex-row items-center px-3 py-1.5 rounded-full mr-2 mb-2 border ${
-                                            selected ? "bg-indigo-50 border-indigo-200" : "bg-white border-gray-200"
-                                        } ${disabled ? "opacity-50" : ""}`}
-                                        onPress={() => {
-                                            if (disabled) {
-                                                Alert.alert("권한 필요", "경제 이벤트는 관리자만 추가할 수 있습니다.");
-                                                return;
-                                            }
-                                            setNewEventCategory(option);
-                                        }}
-                                    >
-                                        <StyledView className={`h-2 w-2 rounded-full mr-1 ${eventColors[option]?.dot || "bg-gray-400"}`} />
-                                        <StyledText
-                                            className={`text-xs font-medium ${
-                                                selected ? "text-indigo-700" : "text-gray-600"
-                                            }`}
+                            <StyledView className="flex-row flex-wrap">
+                                {categoryOptions.map((option) => {
+                                    const selected = newEventCategory === option;
+                                    const disabled = option === "경제" && !isAdmin;
+                                    return (
+                                        <StyledTouchableOpacity
+                                            key={option}
+                                            disabled={disabled}
+                                            className={`flex-row items-center px-3 py-1.5 rounded-full mr-2 mb-2 border ${selected ? "bg-indigo-50 border-indigo-200" : "bg-white border-gray-200"
+                                                } ${disabled ? "opacity-50" : ""}`}
+                                            onPress={() => {
+                                                if (disabled) {
+                                                    Alert.alert("권한 필요", "경제 이벤트는 관리자만 추가할 수 있습니다.");
+                                                    return;
+                                                }
+                                                setNewEventCategory(option);
+                                            }}
                                         >
-                                            {option}
-                                        </StyledText>
-                                    </StyledTouchableOpacity>
-                                );
-                            })}
-                        </StyledView>
-                        {!isAdmin && (
-                            <StyledText className="text-[11px] text-gray-500">
-                                경제 이벤트는 관리자 계정으로만 등록할 수 있으며 모든 사용자에게 노출됩니다.
-                            </StyledText>
-                        )}
+                                            <StyledView className={`h-2 w-2 rounded-full mr-1 ${eventColors[option]?.dot || "bg-gray-400"}`} />
+                                            <StyledText
+                                                className={`text-xs font-medium ${selected ? "text-indigo-700" : "text-gray-600"
+                                                    }`}
+                                            >
+                                                {option}
+                                            </StyledText>
+                                        </StyledTouchableOpacity>
+                                    );
+                                })}
+                            </StyledView>
+                            {!isAdmin && (
+                                <StyledText className="text-[11px] text-gray-500">
+                                    경제 이벤트는 관리자 계정으로만 등록할 수 있으며 모든 사용자에게 노출됩니다.
+                                </StyledText>
+                            )}
                         </StyledView>
                         <StyledView className="mb-4">
                             <StyledText className="text-xs text-gray-500 mb-1">색상 안내</StyledText>

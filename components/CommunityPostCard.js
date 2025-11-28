@@ -113,7 +113,7 @@ export default function CommunityPostCard({ post, showImagePreview = true, disab
                         <StyledView className="flex-row items-center space-x-3">
                             <StyledView className="flex-row items-center space-x-1">
                                 <MessageCircle size={12} color="#6b7280" />
-                                <StyledText className="text-xs text-gray-500">{post.comment_count || 0}</StyledText>
+                                <StyledText className="text-xs text-gray-500">{post.comment_count ?? post.comments?.length ?? 0}</StyledText>
                             </StyledView>
                         </StyledView>
                     </StyledView>

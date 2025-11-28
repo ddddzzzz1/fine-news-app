@@ -128,11 +128,10 @@ export default function Home() {
                     });
                 } else {
                     // Users only see published
-                    // TEMPORARY: Fetching pending as well for dev visibility
                     const q = query(
                         collection(db, 'news_drafts'),
-                        // where('state', '==', 'published'), // Commented out for dev
-                        orderBy('created_at', 'desc'),
+                        where('state', '==', 'published'),
+                        orderBy('published_date', 'desc'),
                         limit(50)
                     );
                     const querySnapshot = await getDocs(q);

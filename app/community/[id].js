@@ -453,7 +453,7 @@ export default function CommunityDetail() {
                 {!isPostEditing && (
                     <StyledView className="mb-4">
                         <StyledText className="text-base font-bold text-gray-900 mb-3">
-                            댓글 {post.comment_count ?? comments.length ?? 0}
+                            댓글 {post.comment_count ?? post.comments?.length ?? 0}
                         </StyledText>
                         <StyledView className="mb-4">
                             <TextInput
