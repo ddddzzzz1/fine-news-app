@@ -15,7 +15,7 @@ const StyledView = styled(View);
 const StyledText = styled(Text);
 const StyledImage = styled(Image);
 
-export default function CommunityPostCard({ post, showImagePreview = true }) {
+export default function CommunityPostCard({ post, showImagePreview = true, disableLike = false }) {
     const router = useRouter();
     const queryClient = useQueryClient();
     const [liking, setLiking] = useState(false);
@@ -39,7 +39,7 @@ export default function CommunityPostCard({ post, showImagePreview = true }) {
     const handleLike = async () => {
         if (!post?.id || liking) return;
         if (!isAuthenticated) {
-            Alert.alert("로그인 필요", "좋아요를 누르려면 로그인해주세요.", [
+            Alert.alert("로그인이 필요해요", "좋아요를 누르려면 로그인해주세요.", [
                 { text: "취소", style: "cancel" },
                 { text: "로그인", onPress: () => router.push("/login") },
             ]);
@@ -118,17 +118,24 @@ export default function CommunityPostCard({ post, showImagePreview = true }) {
                         </StyledView>
                     </StyledView>
                     <StyledView className="mt-3 flex-row items-center justify-between">
-                        <TouchableOpacity
-                            onPress={(e) => {
-                                e.stopPropagation();
-                                handleLike();
-                            }}
-                            className="flex-row items-center space-x-1"
-                            disabled={liking}
-                        >
-                            <Heart size={16} color={hasLiked ? "#ef4444" : "#6b7280"} fill={hasLiked ? "#ef4444" : "transparent"} />
-                            <StyledText className="text-xs text-gray-700">{likeCount}</StyledText>
-                        </TouchableOpacity>
+                        {disableLike ? (
+                            <StyledView className="flex-row items-center space-x-1 opacity-60">
+                                <Heart size={16} color="#6b7280" />
+                                <StyledText className="text-xs text-gray-700">{likeCount}</StyledText>
+                            </StyledView>
+                        ) : (
+                            <TouchableOpacity
+                                onPress={(e) => {
+                                    e.stopPropagation();
+                                    handleLike();
+                                }}
+                                className="flex-row items-center space-x-1"
+                                disabled={liking}
+                            >
+                                <Heart size={16} color={hasLiked ? "#ef4444" : "#6b7280"} fill={hasLiked ? "#ef4444" : "transparent"} />
+                                <StyledText className="text-xs text-gray-700">{likeCount}</StyledText>
+                            </TouchableOpacity>
+                        )}
                         <StyledText className="text-xs text-indigo-500">{likeCount > 5 ? "인기글" : ""}</StyledText>
                     </StyledView>
                 </Card>

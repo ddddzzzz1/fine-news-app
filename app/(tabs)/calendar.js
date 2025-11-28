@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { collection, getDocs, orderBy, query, limit, setDoc, doc, Timestamp, deleteDoc } from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
 import { useRouter } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
 import {
     format,
     startOfMonth,
@@ -75,12 +76,13 @@ export default function CalendarTab() {
     const [isSavingEvent, setIsSavingEvent] = useState(false);
     const [deletingEventId, setDeletingEventId] = useState(null);
     const router = useRouter();
+    const navigation = useNavigation();
     const queryClient = useQueryClient();
     const currentUser = auth.currentUser;
     const userId = currentUser?.uid;
     const { isAdmin } = useAdminClaims();
 
-    const { data: events = [], isLoading } = useQuery({
+    const { data: events = [], isLoading, refetch } = useQuery({
         queryKey: ["calendar-events"],
         queryFn: async () => {
             try {
@@ -94,6 +96,15 @@ export default function CalendarTab() {
         },
         initialData: [],
     });
+
+    useEffect(() => {
+        const unsubscribe = navigation?.addListener?.("tabPress", () => {
+            refetch();
+        });
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
+    }, [navigation, refetch]);
 
     const allEvents = useMemo(() => (events.length ? events : fallbackEvents), [events]);
 
@@ -109,12 +120,14 @@ export default function CalendarTab() {
         });
     }, [allEvents, activeTab, userId]);
 
+    const visibleEvents = filteredEvents;
+
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
     const getEventsForDay = (day) =>
-        allEvents.filter((event) => {
+        visibleEvents.filter((event) => {
             const eventDate = resolveEventDate(event.date);
             if (!eventDate || !isSameDay(eventDate, day)) return false;
             if (event.is_personal && event.user_id && event.user_id !== userId) return false;
@@ -123,13 +136,13 @@ export default function CalendarTab() {
 
     const eventsForSelectedDate = useMemo(() => {
         if (!selectedDate) return [];
-        return allEvents.filter((event) => {
+        return visibleEvents.filter((event) => {
             const eventDate = resolveEventDate(event.date);
             if (!eventDate || !isSameDay(eventDate, selectedDate)) return false;
             if (event.is_personal && event.user_id && event.user_id !== userId) return false;
             return true;
         });
-    }, [selectedDate, allEvents, userId]);
+    }, [selectedDate, visibleEvents, userId]);
 
     const eventColors = {
         마이: { badge: "bg-blue-100 text-blue-800 border border-blue-200", dot: "bg-blue-500" },

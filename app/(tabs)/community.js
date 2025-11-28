@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
+import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { Edit3 } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { collection, getDocs, orderBy, limit, query } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
@@ -22,9 +23,11 @@ const POPULAR_LIKE_THRESHOLD = 5;
 
 export default function CommunityTab() {
     const router = useRouter();
+    const navigation = useNavigation();
     const [selectedCategory, setSelectedCategory] = useState(categories[0]);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
-    const { data: communityPosts, isLoading } = useQuery({
+    const { data: communityPosts, isLoading, isFetching, refetch } = useQuery({
         queryKey: ["tab-community-posts"],
         queryFn: async () => {
             try {
@@ -38,6 +41,31 @@ export default function CommunityTab() {
         },
         initialData: [],
     });
+
+    const refreshPosts = useCallback(async () => {
+        if (isRefreshing || isFetching) return;
+        setIsRefreshing(true);
+        try {
+            const result = await refetch();
+            if (result?.error) {
+                Alert.alert("오류", "게시글을 새로고침하지 못했어요. 잠시 후 다시 시도해 주세요.");
+            }
+        } catch (error) {
+            console.log("Failed to refresh community posts", error);
+            Alert.alert("오류", "게시글을 새로고침하지 못했어요. 잠시 후 다시 시도해 주세요.");
+        } finally {
+            setIsRefreshing(false);
+        }
+    }, [isRefreshing, isFetching, refetch]);
+
+    useEffect(() => {
+        const unsubscribe = navigation?.addListener?.("tabPress", () => {
+            refreshPosts();
+        });
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
+    }, [navigation, refreshPosts]);
 
     const filteredPosts = useMemo(() => {
         if (!communityPosts?.length) return [];
@@ -65,8 +93,21 @@ export default function CommunityTab() {
     return (
         <StyledSafeAreaView edges={["top"]} className="flex-1 bg-white">
             <StyledView className="px-4 py-4 border-b border-gray-100">
-                <StyledText className="text-xl font-bold text-gray-900">커뮤니티</StyledText>
-                <StyledText className="text-sm text-gray-500 mt-1">인기글부터 관심 주제까지 확인해보세요</StyledText>
+                <StyledView className="flex-row items-center justify-between">
+                    <StyledView>
+                        <StyledText className="text-xl font-bold text-gray-900">커뮤니티</StyledText>
+                        <StyledText className="text-sm text-gray-500 mt-1">인기글부터 관심 주제까지 확인해보세요</StyledText>
+                    </StyledView>
+                    <StyledTouchableOpacity
+                        onPress={refreshPosts}
+                        disabled={isRefreshing || isFetching}
+                        className="px-3 py-1.5 rounded-full border border-gray-200"
+                    >
+                        <StyledText className="text-sm text-gray-700">
+                            {isRefreshing || isFetching ? "새로고치는 중..." : "새로고침"}
+                        </StyledText>
+                    </StyledTouchableOpacity>
+                </StyledView>
                 <StyledCategoryScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -77,7 +118,10 @@ export default function CommunityTab() {
                         {categories.map((category) => (
                             <StyledTouchableOpacity
                                 key={category}
-                                onPress={() => setSelectedCategory(category)}
+                                onPress={() => {
+                                    setSelectedCategory(category);
+                                    refreshPosts();
+                                }}
                                 className={`px-4 py-2 rounded-full border ${
                                     selectedCategory === category ? "bg-indigo-600 border-indigo-600" : "border-gray-200"
                                 }`}
@@ -113,11 +157,11 @@ export default function CommunityTab() {
                         <>
                             {filteredPosts.length === 0 ? (
                                 <StyledView className="py-8 items-center">
-                                    <StyledText className="text-sm text-gray-500">선택한 카테고리에 게시글이 없어요.</StyledText>
+                                    <StyledText className="text-sm text-gray-500">선택한 카테고리에 게시글이 없어요</StyledText>
                                 </StyledView>
                             ) : (
                                 filteredPosts.map((post) => (
-                                    <CommunityPostCard key={post.id} post={post} showImagePreview={false} />
+                                    <CommunityPostCard key={post.id} post={post} showImagePreview={false} disableLike />
                                 ))
                             )}
                         </>

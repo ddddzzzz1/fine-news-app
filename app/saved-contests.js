@@ -1,10 +1,10 @@
 import React from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { Stack, useRouter } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { collection, getDocs, query, where, deleteDoc, doc } from "firebase/firestore";
 import { db, auth } from "../firebaseConfig";
 import ContestCard from "../components/ContestCard";
 import { Button } from "../components/ui/button";
@@ -20,6 +20,7 @@ export default function SavedContestsScreen() {
     const user = auth.currentUser;
     const userId = user?.uid;
     const isAuthenticated = Boolean(userId);
+    const queryClient = useQueryClient();
 
     const { data: savedContests = [], isLoading } = useQuery({
         queryKey: ["saved-contests", userId],
@@ -28,7 +29,7 @@ export default function SavedContestsScreen() {
             try {
                 const q = query(collection(db, "saved_contests"), where("user_id", "==", userId));
                 const snapshot = await getDocs(q);
-                return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+                return snapshot.docs.map((docSnap) => ({ id: docSnap.id, saved_doc_id: docSnap.id, ...docSnap.data() }));
             } catch (error) {
                 console.log("Error fetching saved contests", error);
                 return [];
@@ -42,6 +43,38 @@ export default function SavedContestsScreen() {
         ...contest,
         id: contest.contest_id || contest.id,
     }));
+
+    const handleDelete = (contest) => {
+        if (!userId || !contest?.id) return;
+        const contestId = contest.contest_id || contest.id;
+        const savedDocId = contest.saved_doc_id || contest.id || `${userId}_${contestId}`;
+        const calendarDocId = `saved-${userId}-${contestId}`;
+
+        Alert.alert("삭제", "저장한 공고를 삭제할까요? 달력에서도 함께 삭제돼요.", [
+            { text: "취소", style: "cancel" },
+            {
+                text: "삭제",
+                style: "destructive",
+                onPress: async () => {
+                    try {
+                        await deleteDoc(doc(db, "saved_contests", savedDocId));
+                    } catch (error) {
+                        console.log("Failed to delete saved contest", error);
+                    }
+                    try {
+                        await deleteDoc(doc(db, "calendar_events", calendarDocId));
+                    } catch (error) {
+                        // 캘린더에 없을 수도 있으니 조용히 무시
+                    }
+                    await Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["saved-contests", userId] }),
+                        queryClient.invalidateQueries({ queryKey: ["profile-saved-contests", userId] }),
+                        queryClient.invalidateQueries({ queryKey: ["calendar-events"] }),
+                    ]);
+                },
+            },
+        ]);
+    };
 
     return (
         <StyledSafeAreaView edges={["top"]} className="flex-1 bg-white">
@@ -65,10 +98,17 @@ export default function SavedContestsScreen() {
                 ) : isLoading ? (
                     <StyledText className="text-sm text-gray-500">저장한 공고를 불러오는 중입니다...</StyledText>
                 ) : formattedContests.length ? (
-                    formattedContests.map((contest) => <ContestCard key={contest.id} contest={contest} />)
+                    formattedContests.map((contest) => (
+                        <StyledView key={contest.id} className="mb-3">
+                            <ContestCard contest={contest} />
+                            <Button variant="outline" className="mt-2 rounded-full" onPress={() => handleDelete(contest)}>
+                                삭제
+                            </Button>
+                        </StyledView>
+                    ))
                 ) : (
                     <StyledView className="items-center py-20">
-                        <StyledText className="text-sm text-gray-500">저장한 공고가 없습니다.</StyledText>
+                        <StyledText className="text-sm text-gray-500">저장한 공고가 없어요.</StyledText>
                     </StyledView>
                 )}
             </StyledScrollView>

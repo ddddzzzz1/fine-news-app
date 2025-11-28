@@ -46,6 +46,7 @@ export default function CommunityDetail() {
     const [editBoardType, setEditBoardType] = useState(boardTypes[0]);
     const [reportTarget, setReportTarget] = useState(null);
     const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const REPORT_REASONS = [
         { label: "스팸/광고", value: "spam" },
         { label: "욕설/혐오 표현", value: "abusive" },
@@ -53,7 +54,7 @@ export default function CommunityDetail() {
         { label: "기타 정책 위반", value: "policy" },
     ];
 
-    const { data: post, isLoading } = useQuery({
+    const { data: post, isLoading, isFetching, refetch } = useQuery({
         queryKey: ["community-post", id],
         queryFn: async () => {
             if (!id) return null;
@@ -253,6 +254,23 @@ export default function CommunityDetail() {
         }
     };
 
+    const refreshPost = async () => {
+        if (isRefreshing || (isFetching && !isLoading)) return;
+        if (!id) return;
+        setIsRefreshing(true);
+        try {
+            const result = await refetch();
+            if (result?.error) {
+                Alert.alert("오류", "게시글을 새로 고치지 못했어요. 잠시 후 다시 시도해 주세요.");
+            }
+        } catch (error) {
+            console.log("Failed to refresh post", error);
+            Alert.alert("오류", "게시글을 새로 고치지 못했어요. 잠시 후 다시 시도해 주세요.");
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
     if (isLoading) {
         return (
             <StyledSafeAreaView edges={["top"]} className="flex-1 bg-white items-center justify-center">
@@ -280,62 +298,74 @@ export default function CommunityDetail() {
                     <ArrowLeft size={22} color="#111827" />
                 </Button>
                 <StyledText className="font-semibold text-sm text-gray-900">커뮤니티</StyledText>
-                {isAuthor ? (
-                    <StyledView className="flex-row space-x-2">
-                        {isPostEditing ? (
-                            <>
-                                <Button variant="ghost" onPress={async () => {
-                                    if (!post?.id || !editTitle.trim() || !editContent.trim()) {
-                                        Alert.alert("게시글 수정", "제목과 내용을 입력해주세요.");
-                                        return;
-                                    }
-                                    try {
-                                        await updateDoc(doc(db, "community_posts", post.id), {
-                                            title: editTitle.trim(),
-                                            content: editContent.trim(),
-                                            board_type: editBoardType,
-                                            updated_at: Timestamp.fromDate(new Date()),
-                                        });
-                                        await Promise.all([
-                                            queryClient.invalidateQueries({ queryKey: ["community-post", post.id] }),
-                                            queryClient.invalidateQueries({ queryKey: ["tab-community-posts"] }),
-                                        ]);
-                                        setIsPostEditing(false);
-                                    } catch (error) {
-                                        console.log("Failed to edit post", error);
-                                        Alert.alert("오류", "게시글을 수정하지 못했습니다.");
-                                    }
-                                }}>
-                                    <StyledText className="text-sm text-indigo-600">저장</StyledText>
-                                </Button>
-                                <Button variant="ghost" onPress={() => setIsPostEditing(false)}>
-                                    <StyledText className="text-sm text-gray-500">취소</StyledText>
-                                </Button>
-                            </>
-                        ) : (
-                            <>
-                                <Button
-                                    variant="ghost"
-                                    onPress={() => {
-                                        setEditTitle(post.title || "");
-                                        setEditContent(post.content || "");
-                                        setEditBoardType(post.board_type || boardTypes[0]);
-                                        setIsPostEditing(true);
-                                    }}
-                                >
-                                    <StyledText className="text-sm text-indigo-600">수정</StyledText>
-                                </Button>
-                                <Button variant="ghost" onPress={handleDeletePost} className="rounded-full">
-                                    <StyledText className="text-sm text-red-500">삭제</StyledText>
-                                </Button>
-                            </>
-                        )}
-                    </StyledView>
-                ) : (
-                    <Button variant="ghost" onPress={() => openReportSheet({ type: "post" })} className="rounded-full">
-                        <StyledText className="text-sm text-red-500">신고</StyledText>
+                <StyledView className="flex-row items-center space-x-2">
+                    <Button
+                        variant="ghost"
+                        onPress={refreshPost}
+                        disabled={isRefreshing || (isFetching && !isLoading)}
+                        className="rounded-full px-3"
+                    >
+                        <StyledText className="text-sm text-gray-700">
+                            {isRefreshing || (isFetching && !isLoading) ? "새로고치는 중..." : "새로고침"}
+                        </StyledText>
                     </Button>
-                )}
+                    {isAuthor ? (
+                        <StyledView className="flex-row space-x-2">
+                            {isPostEditing ? (
+                                <>
+                                    <Button variant="ghost" onPress={async () => {
+                                        if (!post?.id || !editTitle.trim() || !editContent.trim()) {
+                                            Alert.alert("게시글 수정", "제목과 내용을 입력해주세요.");
+                                            return;
+                                        }
+                                        try {
+                                            await updateDoc(doc(db, "community_posts", post.id), {
+                                                title: editTitle.trim(),
+                                                content: editContent.trim(),
+                                                board_type: editBoardType,
+                                                updated_at: Timestamp.fromDate(new Date()),
+                                            });
+                                            await Promise.all([
+                                                queryClient.invalidateQueries({ queryKey: ["community-post", post.id] }),
+                                                queryClient.invalidateQueries({ queryKey: ["tab-community-posts"] }),
+                                            ]);
+                                            setIsPostEditing(false);
+                                        } catch (error) {
+                                            console.log("Failed to edit post", error);
+                                            Alert.alert("오류", "게시글을 수정하지 못했습니다.");
+                                        }
+                                    }}>
+                                        <StyledText className="text-sm text-indigo-600">저장</StyledText>
+                                    </Button>
+                                    <Button variant="ghost" onPress={() => setIsPostEditing(false)}>
+                                        <StyledText className="text-sm text-gray-500">취소</StyledText>
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    <Button
+                                        variant="ghost"
+                                        onPress={() => {
+                                            setEditTitle(post.title || "");
+                                            setEditContent(post.content || "");
+                                            setEditBoardType(post.board_type || boardTypes[0]);
+                                            setIsPostEditing(true);
+                                        }}
+                                    >
+                                        <StyledText className="text-sm text-indigo-600">수정</StyledText>
+                                    </Button>
+                                    <Button variant="ghost" onPress={handleDeletePost} className="rounded-full">
+                                        <StyledText className="text-sm text-red-500">삭제</StyledText>
+                                    </Button>
+                                </>
+                            )}
+                        </StyledView>
+                    ) : (
+                        <Button variant="ghost" onPress={() => openReportSheet({ type: "post" })} className="rounded-full">
+                            <StyledText className="text-sm text-red-500">신고</StyledText>
+                        </Button>
+                    )}
+                </StyledView>
             </StyledView>
 
             <StyledScrollView className="flex-1 px-4 py-4">

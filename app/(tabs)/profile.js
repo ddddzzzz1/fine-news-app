@@ -10,6 +10,7 @@ import { Badge } from "../../components/ui/badge";
 import { ChevronRight, FileText, HelpCircle, LogOut, Bookmark, Bell, Shield, Settings } from "lucide-react-native";
 import { signOut } from "firebase/auth";
 import { useRouter } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
 import { useUserProfile } from "../../lib/useUserProfile";
 import { useAdminClaims } from "../../hooks/useAdminClaims";
 
@@ -27,6 +28,7 @@ const FALLBACK_PROFILE = {
 
 export default function Profile() {
     const router = useRouter();
+    const navigation = useNavigation();
     const currentUser = auth.currentUser;
     const userId = currentUser?.uid;
     const email = currentUser?.email;
@@ -57,7 +59,7 @@ export default function Profile() {
           ? "bg-amber-50 text-amber-700 border-0"
           : "bg-gray-100 text-gray-500 border-0";
 
-    const { data: myPosts } = useQuery({
+    const { data: myPosts = [], refetch: refetchMyPosts } = useQuery({
         queryKey: ["profile-posts", email],
         queryFn: async () => {
             if (!email) return [];
@@ -74,7 +76,7 @@ export default function Profile() {
         initialData: [],
     });
 
-    const { data: savedContests } = useQuery({
+    const { data: savedContests = [], refetch: refetchSavedContests } = useQuery({
         queryKey: ["profile-saved-contests", userId],
         queryFn: async () => {
             if (!userId) return [];
@@ -90,6 +92,16 @@ export default function Profile() {
         enabled: !!userId,
         initialData: [],
     });
+
+    React.useEffect(() => {
+        const unsubscribe = navigation?.addListener?.("tabPress", () => {
+            refetchMyPosts();
+            refetchSavedContests();
+        });
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
+    }, [navigation, refetchMyPosts, refetchSavedContests]);
 
     const menuItems = [
         { icon: FileText, label: "내 글", count: myPosts?.length || 0, action: () => router.push("/my-posts") },
