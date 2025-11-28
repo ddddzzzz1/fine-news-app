@@ -1,8 +1,8 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
-import { Edit3 } from "lucide-react-native";
+import { Edit3, RefreshCw } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ const StyledText = styled(Text);
 const StyledScrollView = styled(ScrollView);
 const StyledTouchableOpacity = styled(TouchableOpacity);
 const StyledCategoryScrollView = styled(ScrollView);
+const StyledActivityIndicator = styled(ActivityIndicator);
 
 const categories = ["전체", "인기글", "자유", "취업", "모집", "스터디"];
 const POPULAR_LIKE_THRESHOLD = 5;
@@ -101,11 +102,14 @@ export default function CommunityTab() {
                     <StyledTouchableOpacity
                         onPress={refreshPosts}
                         disabled={isRefreshing || isFetching}
-                        className="px-3 py-1.5 rounded-full border border-gray-200"
+                        accessibilityLabel="커뮤니티 새로고침"
+                        className={`p-2.5 rounded-full border border-gray-200 ${isRefreshing || isFetching ? "opacity-60" : ""}`}
                     >
-                        <StyledText className="text-sm text-gray-700">
-                            {isRefreshing || isFetching ? "새로고치는 중..." : "새로고침"}
-                        </StyledText>
+                        {isRefreshing || isFetching ? (
+                            <StyledActivityIndicator size="small" color="#4B5563" />
+                        ) : (
+                            <RefreshCw size={20} color="#4B5563" />
+                        )}
                     </StyledTouchableOpacity>
                 </StyledView>
                 <StyledCategoryScrollView

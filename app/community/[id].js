@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Image, Modal } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Image, Modal, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -18,7 +18,7 @@ import {
     serverTimestamp,
 } from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
-import { ArrowLeft, Heart } from "lucide-react-native";
+import { ArrowLeft, Heart, RefreshCw, Flag } from "lucide-react-native";
 import { Button } from "../../components/ui/button";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -28,6 +28,7 @@ const StyledScrollView = styled(ScrollView);
 const StyledView = styled(View);
 const StyledText = styled(Text);
 const StyledImage = styled(Image);
+const StyledActivityIndicator = styled(ActivityIndicator);
 
 export default function CommunityDetail() {
     const router = useRouter();
@@ -297,17 +298,20 @@ export default function CommunityDetail() {
                 <Button variant="ghost" size="icon" className="rounded-full" onPress={() => router.back()}>
                     <ArrowLeft size={22} color="#111827" />
                 </Button>
-                <StyledText className="font-semibold text-sm text-gray-900">커뮤니티</StyledText>
                 <StyledView className="flex-row items-center space-x-2">
                     <Button
                         variant="ghost"
+                        size="icon"
                         onPress={refreshPost}
                         disabled={isRefreshing || (isFetching && !isLoading)}
-                        className="rounded-full px-3"
+                        className="rounded-full"
+                        accessibilityLabel="게시글 새로고침"
                     >
-                        <StyledText className="text-sm text-gray-700">
-                            {isRefreshing || (isFetching && !isLoading) ? "새로고치는 중..." : "새로고침"}
-                        </StyledText>
+                        {isRefreshing || (isFetching && !isLoading) ? (
+                            <StyledActivityIndicator size="small" color="#4B5563" />
+                        ) : (
+                            <RefreshCw size={20} color="#111827" />
+                        )}
                     </Button>
                     {isAuthor ? (
                         <StyledView className="flex-row space-x-2">
@@ -361,8 +365,14 @@ export default function CommunityDetail() {
                             )}
                         </StyledView>
                     ) : (
-                        <Button variant="ghost" onPress={() => openReportSheet({ type: "post" })} className="rounded-full">
-                            <StyledText className="text-sm text-red-500">신고</StyledText>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onPress={() => openReportSheet({ type: "post" })}
+                            className="rounded-full"
+                            accessibilityLabel="게시글 신고"
+                        >
+                            <Flag size={20} color="#EF4444" />
                         </Button>
                     )}
                 </StyledView>
