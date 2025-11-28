@@ -175,7 +175,7 @@ Lucide Icons
 
 <h3>📰 뉴스 생성 워크플로우 (News Factory)</h3>
 <ul>
-<li><strong>뉴스 팩토리 (News Factory)</strong>: 매시간 실행되어 최신 한국 경제 뉴스를 수집하고, Gemini API를 통해 팩트 중심의 초안을 생성합니다 (`news_drafts`).</li>
+<li><strong>뉴스 팩토리 (News Factory)</strong>: 매 6시간마다 실행되어 최신 한국 경제 뉴스를 수집하고, Gemini API를 통해 팩트 중심의 초안을 생성합니다 (`news_drafts`). 생성된 데이터는 <code>key_data_points.hero</code> / <code>.details</code> / <code>.highlights</code> 구조로 내려오며, 홈 화면의 대시보드 카드에 즉시 활용할 수 있습니다.</li>
 <li><strong>브리핑 스케줄러 (Briefing Scheduler)</strong>: 6시간마다 실행되어 최근 생성된 뉴스들을 요약하여 "데일리 브리핑"을 생성합니다 (`daily_briefings`).</li>
 <li><strong>프롬프트 최적화</strong>: 최신성 유지를 위해 현재 시간(KST)을 주입하고, 에디터의 편의를 위해 `핵심 포인트(Key Data Points)`와 `발행일(Published Date)`을 추출합니다.</li>
 <li><strong>관리자 검토</strong>: 웹 관리자 대시보드(<code>fine-news-admin</code>) 또는 모바일 앱에서 초안을 검토하고 발행(`published`)합니다.</li>

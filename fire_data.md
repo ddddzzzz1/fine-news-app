@@ -23,6 +23,7 @@ This app expects four top-level collections. Seed them in Cloud Firestore (or vi
 | `image_url` | string | Optional hero image stored under `news/{docId}/...` in Storage. |
 | `image_meta` | object | `{ width, height, size, storage_path }` metadata for cleanup/aspect ratios. |
 | `tags` | array\<string> | Topic filters + related-news lookups. |
+| `key_data_points` | map | Structured dashboard summary used by the 앱. `{ hero: { label, value, unit, insight }, details: [{ label, value, note }], highlights: [{ tag, text }], timeline: [{ emoji, step }] }` |
 | `source` | string | Publisher name (예: `한국경제TV`). |
 | `source_url` | string | Canonical link Gemini searched (dedupe + "원문 보기"). |
 | `state` | string | Workflow state: `pending`, `published`, or `rejected`. |
