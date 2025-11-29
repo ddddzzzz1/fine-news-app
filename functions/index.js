@@ -766,7 +766,7 @@ exports.closeAccount = onCall(async (request) => {
 
 exports.newsFactory = onSchedule(
     {
-        schedule: "0 * * * *", // Every hour
+        schedule: "0 */6 * * *", // Every 6 hours
         timeZone: "Asia/Seoul",
         retryCount: 0,
     },

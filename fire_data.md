@@ -169,3 +169,12 @@ Document ID: `market_indices`
 - Email/password sign-up enforces Firebase password policy (6–12 characters, must include at least one lowercase letter and one number).
 - After a new account is created we immediately send a Firebase email-verification message. Login blocks unverified accounts and re-sends the verification email if necessary.
 - Student ID verification submissions live under `user_profiles/{uid}` and require admin approval through the separate web console.
+
+### Required Indexes
+To support complex queries (e.g., search with filters), the following composite indexes are required. These are defined in `firestore.indexes.json`.
+
+| Collection | Fields | Purpose |
+| --- | --- | --- |
+| `news_drafts` | `state` (Asc) + `title` (Asc) | Allows searching for published news by title prefix (`where("state", "==", "published").orderBy("title")`). |
+| `news_drafts` | `state` (Asc) + `created_at` (Desc) | (Existing) Admin dashboard sorting. |
+| `news_drafts` | `state` (Asc) + `published_date` (Desc) | (Existing) Public news feed sorting. |

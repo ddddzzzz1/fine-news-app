@@ -51,6 +51,21 @@ const formatChange = (percent) => {
 
 const HALF_HOUR_MS = 30 * 60 * 1000;
 
+const normalizeNumber = (value) => {
+    if (typeof value === "number") return value;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+const calculatePercentChange = (current, previous) => {
+    const currentValue = normalizeNumber(current);
+    const previousValue = normalizeNumber(previous);
+    if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue) || previousValue === 0) {
+        return undefined;
+    }
+    return ((currentValue - previousValue) / previousValue) * 100;
+};
+
 async function fetchYahooMarketSnapshot() {
     const symbols = getQuerySymbolList();
     if (!symbols.length) return null;
@@ -58,7 +73,7 @@ async function fetchYahooMarketSnapshot() {
     let lastError = null;
 
     for (const host of YAHOO_HOSTS) {
-        const url = `${host}/v7/finance/quote?lang=en-US&region=US&corsDomain=finance.yahoo.com&symbols=${symbolParam}`;
+        const url = `${host}/v7/finance/spark?interval=1d&range=1d&symbols=${symbolParam}`;
         try {
             const response = await fetch(url, {
                 headers: YAHOO_HEADERS,
@@ -68,26 +83,29 @@ async function fetchYahooMarketSnapshot() {
                 continue;
             }
             const payload = await response.json();
-            const results = payload?.quoteResponse?.result ?? [];
-            const items = results.reduce((acc, quote) => {
-                const symbol = quote?.symbol?.toUpperCase();
+            const results = payload?.spark?.result ?? [];
+            const items = results.reduce((acc, entry) => {
+                const symbol = entry?.symbol?.toUpperCase();
                 const id = symbol ? SYMBOL_TO_ID[symbol] : undefined;
                 if (!id) return acc;
-                const rawValue =
-                    typeof quote.regularMarketPrice === "number"
-                        ? quote.regularMarketPrice
-                        : Number(quote.regularMarketPrice);
-                const fallbackPrice =
-                    typeof quote.regularMarketPreviousClose === "number"
-                        ? quote.regularMarketPreviousClose
-                        : Number(quote.regularMarketPreviousClose);
+
+                const snapshot = entry?.response?.[0];
+                const meta = snapshot?.meta ?? {};
+                const closeSeries = snapshot?.close ?? [];
+                const lastClose = closeSeries.length ? closeSeries[closeSeries.length - 1] : undefined;
+                const currentValue = normalizeNumber(meta.regularMarketPrice ?? lastClose);
+                const previousClose = normalizeNumber(meta.chartPreviousClose ?? meta.previousClose);
+                const timestamps = snapshot?.timestamp ?? [];
+                const updatedAt = meta.regularMarketTime
+                    ? meta.regularMarketTime * 1000
+                    : timestamps.length
+                        ? timestamps[timestamps.length - 1] * 1000
+                        : Date.now();
+
                 acc[id] = {
-                    value: Number.isFinite(rawValue) ? rawValue : fallbackPrice,
-                    changePercent:
-                        typeof quote.regularMarketChangePercent === "number"
-                            ? quote.regularMarketChangePercent
-                            : Number(quote.regularMarketChangePercent),
-                    updatedAt: quote.regularMarketTime ? quote.regularMarketTime * 1000 : Date.now(),
+                    value: currentValue ?? previousClose,
+                    changePercent: calculatePercentChange(currentValue ?? lastClose, previousClose),
+                    updatedAt,
                 };
                 return acc;
             }, {});

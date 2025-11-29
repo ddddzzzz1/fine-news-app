@@ -67,6 +67,10 @@ service cloud.firestore {
       allow read: if true;
     }
 
+    match /newsletters/{docId} {
+      allow read: if true;
+    }
+
     match /daily_briefings/{docId} {
       allow read: if true;
     }

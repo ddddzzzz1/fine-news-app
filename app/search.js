@@ -5,10 +5,11 @@ import { Link, useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Search as SearchIcon, X, AlertCircle } from "lucide-react-native";
+import { collection, query, where, getDocs, limit, orderBy, startAt, endAt } from "firebase/firestore";
+import { db } from "../firebaseConfig";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { useDebouncedValue } from "../lib/useDebounce";
-import { getAlgoliaClient, getAlgoliaIndexName, isAlgoliaConfigured } from "../lib/searchClient";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 const StyledView = styled(View);
@@ -17,10 +18,10 @@ const StyledScrollView = styled(ScrollView);
 const StyledTouchableOpacity = styled(TouchableOpacity);
 
 const SEARCH_TABS = [
-    { id: "news", label: "뉴스" },
-    { id: "newsletters", label: "뉴스레터" },
-    { id: "community_posts", label: "커뮤니티" },
-    { id: "contests", label: "공모전" },
+    { id: "news", label: "뉴스", collection: "news_drafts" },
+    { id: "newsletters", label: "뉴스레터", collection: "newsletters" },
+    { id: "community_posts", label: "커뮤니티", collection: "community_posts" },
+    { id: "contests", label: "공모전", collection: "contests" },
 ];
 
 const ROUTE_MAP = {
@@ -49,108 +50,163 @@ const stripHtml = (value = "") =>
         .replace(/<\/?mark>/g, "")
         .replace(/<[^>]*>/g, "");
 
-const buildSnippet = (hit) => {
-    const highlighted =
-        hit?._snippetResult?.content?.value ??
-        hit?._highlightResult?.content?.value ??
-        hit?.content ??
-        "";
-    const clean = stripHtml(highlighted).trim();
+const buildSnippet = (item) => {
+    // news_drafts uses 'content_text' or 'summary'
+    // other collections use 'content' or 'description'
+    const content = item.content_text || item.summary || item.content || item.description || "";
+    const clean = stripHtml(content).trim();
     if (!clean) return "";
-    return clean.length > 180 ? `${clean.slice(0, 177)}…` : clean;
+    return clean.length > 100 ? `${clean.slice(0, 97)}…` : clean;
 };
 
-const buildMeta = (type, hit) => {
+const buildMeta = (type, item) => {
     switch (type) {
         case "community_posts":
-            return [hit.board_type, hit.university].filter(Boolean).join(" · ");
+            return [item.board_type, item.university].filter(Boolean).join(" · ");
         case "contests":
-            return [hit.category || "공모전", hit.organizer].filter(Boolean).join(" · ");
+            return [item.category || "공모전", item.organizer].filter(Boolean).join(" · ");
         case "newsletters":
-            return [hit.edition, hit.published_date || hit.created_date].filter(Boolean).join(" · ");
+            return [item.edition, item.published_date || item.created_date].filter(Boolean).join(" · ");
         default:
-            return [hit.source || "Fine News", hit.published_date || hit.created_date].filter(Boolean).join(" · ");
+            return [item.source || "Fine News", item.published_date || item.created_date].filter(Boolean).join(" · ");
     }
 };
 
-async function runAlgoliaSearch(client, queryText) {
-    if (!client) {
-        return createEmptyResults();
-    }
+async function runFirestoreSearch(queryText) {
     const trimmed = queryText.trim();
     if (!trimmed) {
         return createEmptyResults();
     }
 
-    const paramsString = (params) =>
-        Object.entries(params)
-            .map(([key, value]) => {
-                if (Array.isArray(value)) {
-                    return `${encodeURIComponent(key)}=${encodeURIComponent(value.join(","))}`;
+    console.log("Firestore Search Query:", trimmed);
+
+    const results = createEmptyResults();
+
+    await Promise.all(
+        SEARCH_TABS.map(async (tab) => {
+            try {
+                const collRef = collection(db, tab.collection);
+                let q;
+
+                if (tab.id === "news") {
+                    // For news_drafts, we need to filter by state="published"
+                    // AND perform the prefix search on title.
+                    // This requires a composite index in Firestore: state (Asc) + title (Asc)
+                    q = query(
+                        collRef,
+                        where("state", "==", "published"),
+                        orderBy("title"),
+                        startAt(trimmed),
+                        endAt(trimmed + "\uf8ff"),
+                        limit(20)
+                    );
+                } else {
+                    q = query(
+                        collRef,
+                        orderBy("title"),
+                        startAt(trimmed),
+                        endAt(trimmed + "\uf8ff"),
+                        limit(20)
+                    );
                 }
-                return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
-            })
-            .join("&");
 
-    const requests = SEARCH_TABS.map((tab) => ({
-        indexName: getAlgoliaIndexName(tab.id),
-        params: paramsString({
-            query: trimmed,
-            hitsPerPage: 20,
-            attributesToRetrieve: "title,content,tags,category,board_type,organizer,university,source,edition,published_date,created_date",
-            attributesToSnippet: "content:32",
-            highlightPreTag: "<em>",
-            highlightPostTag: "</em>",
-        }),
-    }));
+                const snapshot = await getDocs(q);
+                console.log(`[${tab.id}] Found ${snapshot.size} docs`);
+                results[tab.id] = snapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    snippet: buildSnippet(doc.data()),
+                }));
+            } catch (error) {
+                console.error(`Error searching collection ${tab.collection}:`, error);
+                results[tab.id] = [];
+            }
+        })
+    );
 
-    const { results } = await client.search({ requests });
-
-    return SEARCH_TABS.reduce((acc, tab, index) => {
-        const hits = results?.[index]?.hits ?? [];
-        acc[tab.id] = hits.map((hit) => ({
-            ...hit,
-            id: hit.objectID || hit.id,
-            snippet: buildSnippet(hit),
-        }));
-        return acc;
-    }, {});
+    return results;
 }
+
+import { Card } from "../components/ui/card";
+import { TrendingUp, Tag, Calendar } from "lucide-react-native";
+import { format } from "date-fns";
+import { ko } from "date-fns/locale";
+
+const toDate = (value) => {
+    if (!value) return null;
+    if (typeof value.toDate === "function") return value.toDate();
+    if (value.seconds) return new Date(value.seconds * 1000 + (value.nanoseconds || 0) / 1e6);
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
 
 function SearchResultItem({ item, type }) {
     const hrefBase = ROUTE_MAP[type];
     if (!hrefBase || !item?.id) return null;
     const tagsArray = Array.isArray(item.tags) ? item.tags : [];
-    const meta = buildMeta(type, item);
+
+    // Format date
+    const dateObj = toDate(item.published_date || item.created_date);
+    const dateStr = dateObj ? format(dateObj, "M월 d일", { locale: ko }) : "";
+
+    // Meta info (Source, etc.)
+    const metaParts = [];
+    if (type === "community_posts") {
+        if (item.board_type) metaParts.push(item.board_type);
+        if (item.university) metaParts.push(item.university);
+    } else if (type === "contests") {
+        if (item.category) metaParts.push(item.category);
+        if (item.organizer) metaParts.push(item.organizer);
+    } else {
+        if (item.source) metaParts.push(item.source);
+    }
+    const metaText = metaParts.join(" · ");
 
     return (
         <Link href={`${hrefBase}/${item.id}`} asChild>
-            <Pressable className="mb-3 rounded-2xl border border-gray-100 bg-white p-4 shadow">
-                <StyledText className="text-xs font-semibold text-indigo-600 mb-1">
-                    {TYPE_LABEL[type] || "검색결과"}
-                </StyledText>
-                <StyledText className="text-base font-semibold text-gray-900 mb-1" numberOfLines={2}>
-                    {item.title || "제목 없음"}
-                </StyledText>
-                {meta ? (
-                    <StyledText className="text-xs text-gray-500 mb-2" numberOfLines={1}>
-                        {meta}
-                    </StyledText>
-                ) : null}
-                {item.snippet ? (
-                    <StyledText className="text-sm text-gray-600 mb-3" numberOfLines={3}>
-                        {item.snippet}
-                    </StyledText>
-                ) : null}
-                {!!tagsArray.length && (
-                    <StyledView className="flex-row flex-wrap -m-1">
-                        {tagsArray.slice(0, 3).map((tag) => (
-                            <StyledView key={tag} className="m-1 rounded-full bg-indigo-50 px-3 py-1">
-                                <StyledText className="text-xs font-medium text-indigo-700">#{tag}</StyledText>
+            <Pressable>
+                <Card className="border border-gray-100 shadow-sm mb-3 bg-white rounded-xl p-4">
+                    <StyledView className="flex-row items-center justify-between mb-2">
+                        <StyledView className="flex-row items-center">
+                            <StyledView className="bg-indigo-50 px-2 py-0.5 rounded mr-2">
+                                <StyledText className="text-xs font-bold text-indigo-700">
+                                    {TYPE_LABEL[type]}
+                                </StyledText>
                             </StyledView>
-                        ))}
+                            {metaText ? (
+                                <StyledText className="text-xs text-gray-500 font-medium mr-2">
+                                    {metaText}
+                                </StyledText>
+                            ) : null}
+                        </StyledView>
+                        {dateStr ? (
+                            <StyledText className="text-xs text-gray-400">
+                                {dateStr}
+                            </StyledText>
+                        ) : null}
                     </StyledView>
-                )}
+
+                    <StyledText className="font-bold text-base text-gray-900 mb-2 leading-6" numberOfLines={2}>
+                        {item.title || "제목 없음"}
+                    </StyledText>
+
+                    {item.snippet ? (
+                        <StyledText className="text-sm text-gray-600 mb-3 leading-5" numberOfLines={2}>
+                            {item.snippet}
+                        </StyledText>
+                    ) : null}
+
+                    {tagsArray.length > 0 && (
+                        <StyledView className="flex-row flex-wrap gap-1.5">
+                            {tagsArray.slice(0, 3).map((tag, index) => (
+                                <StyledView key={index} className="bg-gray-100 px-2 py-0.5 rounded flex-row items-center">
+                                    <Tag size={10} color="#6b7280" style={{ marginRight: 3 }} />
+                                    <StyledText className="text-[10px] text-gray-600">#{tag}</StyledText>
+                                </StyledView>
+                            ))}
+                        </StyledView>
+                    )}
+                </Card>
             </Pressable>
         </Link>
     );
@@ -164,13 +220,11 @@ export default function GlobalSearch() {
     const trimmed = debouncedQuery.trim();
     const [emptyTemplate] = useState(createEmptyResults());
 
-    const algoliaClient = getAlgoliaClient();
-    const searchReady = isAlgoliaConfigured() && Boolean(algoliaClient);
-    const shouldRunSearch = searchReady && trimmed.length >= 2;
+    const shouldRunSearch = trimmed.length >= 1;
 
     const { data = emptyTemplate, isFetching, isError, error } = useQuery({
-        queryKey: ["algolia-search", trimmed],
-        queryFn: () => runAlgoliaSearch(algoliaClient, trimmed),
+        queryKey: ["firestore-search", trimmed],
+        queryFn: () => runFirestoreSearch(trimmed),
         enabled: shouldRunSearch,
     });
 
@@ -178,17 +232,11 @@ export default function GlobalSearch() {
     const activeResults = results?.[activeTab] ?? [];
 
     const helperText = useMemo(() => {
-        if (!searchReady) {
-            return "Algolia 설정이 비어 있습니다. app.json 의 extra.algolia 를 채우고 다시 시도하세요.";
-        }
         if (!trimmed.length) {
-            return "2자 이상 검색어를 입력하면 뉴스 · 커뮤니티 · 공모전 결과를 한 번에 볼 수 있어요.";
-        }
-        if (trimmed.length < 2) {
-            return "검색어는 최소 2자 이상 입력해주세요.";
+            return "검색어를 입력하면 뉴스 · 커뮤니티 · 공모전 결과를 한 번에 볼 수 있어요.";
         }
         return null;
-    }, [searchReady, trimmed]);
+    }, [trimmed]);
 
     return (
         <StyledSafeAreaView className="flex-1 bg-white" edges={["top"]}>
@@ -222,17 +270,20 @@ export default function GlobalSearch() {
             </StyledView>
 
             <StyledView className="flex-row border-b border-gray-200 px-2">
-                {SEARCH_TABS.map((tab) => (
-                    <StyledTouchableOpacity
-                        key={tab.id}
-                        onPress={() => setActiveTab(tab.id)}
-                        className={`flex-1 py-3 items-center border-b-2 ${activeTab === tab.id ? "border-indigo-600" : "border-transparent"}`}
-                    >
-                        <StyledText className={`text-sm font-medium ${activeTab === tab.id ? "text-indigo-600" : "text-gray-500"}`}>
-                            {tab.label}
-                        </StyledText>
-                    </StyledTouchableOpacity>
-                ))}
+                {SEARCH_TABS.map((tab) => {
+                    const count = results?.[tab.id]?.length || 0;
+                    return (
+                        <StyledTouchableOpacity
+                            key={tab.id}
+                            onPress={() => setActiveTab(tab.id)}
+                            className={`flex-1 py-3 items-center border-b-2 ${activeTab === tab.id ? "border-indigo-600" : "border-transparent"}`}
+                        >
+                            <StyledText className={`text-sm font-medium ${activeTab === tab.id ? "text-indigo-600" : "text-gray-500"}`}>
+                                {tab.label} {count > 0 && <StyledText className="text-xs text-indigo-500">({count})</StyledText>}
+                            </StyledText>
+                        </StyledTouchableOpacity>
+                    );
+                })}
             </StyledView>
 
             <StyledScrollView className="flex-1 px-4 py-4" contentContainerStyle={{ paddingBottom: 32 }}>
@@ -255,9 +306,12 @@ export default function GlobalSearch() {
                 ) : activeResults.length ? (
                     activeResults.map((item) => <SearchResultItem key={`${activeTab}-${item.id}`} item={item} type={activeTab} />)
                 ) : (
-                    <StyledView className="py-10 items-center">
-                        <StyledText className="text-sm text-gray-500">
-                            검색 결과가 없습니다. 다른 키워드로 시도해보세요.
+                    <StyledView className="py-10 items-center px-4">
+                        <StyledText className="text-sm text-gray-500 text-center mb-2">
+                            검색 결과가 없습니다.
+                        </StyledText>
+                        <StyledText className="text-xs text-gray-400 text-center">
+                            * 정확한 단어로 시작하는지 확인해주세요 (예: '삼성' O, '성전자' X)
                         </StyledText>
                     </StyledView>
                 )}
