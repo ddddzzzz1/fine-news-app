@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
+import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
@@ -388,6 +389,7 @@ export function usePushNotifications(user) {
                 }
 
                 try {
+                    // Tracking permission removed as per user request
                     await requestSystemPermission({ forcePrompt: true, source: "app_launch" });
                 } finally {
                     await AsyncStorage.setItem(INITIAL_PROMPT_STORAGE_KEY, "1");

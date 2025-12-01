@@ -1,6 +1,6 @@
 # 파인 뉴스 앱 – 액션 플랜
 
-마지막 업데이트: 2025-02-20
+마지막 업데이트: 2025-12-02
 
 ## 5. 이미지 처리 고도화
 - 게시글·뉴스·공고(대외활동/취업/자격증)에 선택적 이미지 첨부를 허용하고 Firestore 스키마를 `images[]`(메타데이터 포함) 구조로 확장.
@@ -35,5 +35,15 @@
   - `cleanupPushTokens`: Expo 수신 확인을 바탕으로 만료된 토큰을 정리.
 - Expo Firebase Analytics + Cloud Functions 로그로 옵트인/권한 요청/발송 요약 이벤트를 측정.
 - **다음 단계:** 알림 지표 대시보드(옵트인율, 토픽별 전송량, 에러 비율)와 인앱 알림 센터(과거 알림 기록)를 설계.
+
+## 12. 앱 스토어 심사 준비 _(완료 — 2025-12-02)_
+- **테스터 계정 생성:** `tester@fine.com` / `Test1234!` (일반 사용자 권한, 인증 완료 상태).
+- **앱 개인정보 처리방침(App Privacy):**
+  - 수집 항목: Contact Info (Name, Email), Identifiers (User ID, Device ID), Usage Data (Product Interaction), Crash Data.
+  - 추적(Tracking): **No** (광고 목적으로 제3자에게 데이터 제공하지 않음).
+- **권한 설정 수정:**
+  - `NSUserTrackingUsageDescription` 제거 (추적 권한 요청 팝업 삭제).
+  - `hooks/usePushNotifications.js`에서 `requestTrackingPermissionsAsync()` 호출 제거.
+  - 알림 권한(`Notifications.requestPermissionsAsync`)은 유지.
 
 > 주요 변경 후에는 날짜·상태·다음 단계 정보를 최신화해 팀 전체가 진행 상황을 공유하도록 유지하세요.
