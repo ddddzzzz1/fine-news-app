@@ -24,153 +24,167 @@ const FieldValue = admin.firestore.FieldValue;
 
 const timestamp = (date) => admin.firestore.Timestamp.fromDate(new Date(date));
 
+// --- Data Generators ---
+
+const generateNews = (count) => {
+    const news = [];
+    const categories = ["AI", "경제", "취업", "캠퍼스", "금융", "기술"];
+    for (let i = 1; i <= count; i++) {
+        const cat = categories[i % categories.length];
+        news.push({
+            id: `news-gen-${i}`,
+            title: `[${cat}] 2025년 최신 트렌드 뉴스 ${i}`,
+            content: `이것은 ${i}번째 뉴스 기사입니다.\n\nAI와 데이터 사이언스가 대학 캠퍼스에서 어떻게 쓰이는지 정리했습니다.\n\n각 학과별 최신 프로젝트도 함께 확인하세요.`,
+            image_url: "",
+            published_date: timestamp(new Date(Date.now() - i * 86400000)), // Past days
+            created_date: timestamp(new Date(Date.now() - i * 86400000 - 3600000)),
+            source: "Fine News",
+            tags: [cat, "트렌드"],
+        });
+    }
+    return news;
+};
+
+const generateNewsDrafts = (count) => {
+    const drafts = [];
+    for (let i = 1; i <= count; i++) {
+        drafts.push({
+            id: `draft-gen-${i}`,
+            title: `[공개] 경제 정책 브리핑 ${i}`,
+            summary: `금융위원회의 최신 정책을 한눈에 정리한 ${i}번째 리포트입니다.`,
+            content_html: `<p>금융위원회가 2025년 상반기 정책 로드맵을 발표했습니다. (${i})</p>`,
+            content_text: `금융위원회가 2025년 상반기 정책 로드맵을 발표했습니다. (${i})`,
+            tags: ["경제", "정책"],
+            state: "published", // Changed from 'pending' to 'published' for visibility
+            created_at: FieldValue.serverTimestamp(),
+            published_date: timestamp(new Date(Date.now() - i * 43200000)),
+            created_by: "gemini@functions",
+        });
+    }
+    return drafts;
+};
+
+const generateCommunityPosts = (count) => {
+    const posts = [];
+    const boards = ["자유", "취업", "모집", "스터디"];
+    const universities = ["Fine University", "KAIST", "Seoul Nat'l Univ", "Yonsei Univ"];
+
+    for (let i = 1; i <= count; i++) {
+        const board = boards[i % boards.length];
+        const uni = universities[i % universities.length];
+        posts.push({
+            id: `post-gen-${i}`,
+            title: `[${board}] 게시글 제목입니다 ${i}`,
+            content: `커뮤니티 활성화를 위한 ${i}번째 테스트 게시글입니다. 자유롭게 의견을 남겨주세요.`,
+            board_type: board,
+            university: uni,
+            user_id: i % 2 === 0 ? "demo-user" : "demo-admin",
+            created_by: i % 2 === 0 ? "demo@fine.com" : "admin@fine.com",
+            created_date: timestamp(new Date(Date.now() - i * 3600000)), // Past hours
+            like_count: i * 2,
+            liked_users: [],
+            comments: [],
+            comment_count: 0,
+        });
+    }
+    return posts;
+};
+
+const generateCalendarEvents = (count) => {
+    const events = [];
+    for (let i = 1; i <= count; i++) {
+        const isPersonal = i % 3 === 0;
+        events.push({
+            id: `event-gen-${i}`,
+            title: isPersonal ? `개인 일정 ${i}` : `경제 일정 ${i}`,
+            description: isPersonal ? "개인적인 할 일입니다." : "주요 경제 지표 발표.",
+            date: timestamp(new Date(Date.now() + i * 86400000)), // Future days
+            category: isPersonal ? "마이" : "경제",
+            is_personal: isPersonal,
+            user_id: isPersonal ? "demo-user" : null,
+            created_at: FieldValue.serverTimestamp(),
+        });
+    }
+    return events;
+};
+
+const generateContests = (count) => {
+    const contests = [];
+    const categories = ["대외활동", "취업", "자격증"];
+    for (let i = 1; i <= count; i++) {
+        const cat = categories[i % categories.length];
+        contests.push({
+            id: `contest-gen-${i}`,
+            title: `제${i}회 ${cat} 챌린지`,
+            organizer: `Fine ${cat} Center`,
+            category: cat,
+            start_date: timestamp(new Date(Date.now() + i * 86400000)),
+            end_date: timestamp(new Date(Date.now() + (i + 10) * 86400000)),
+            apply_url: "https://example.com",
+        });
+    }
+    return contests;
+};
+
+const generateContestDetails = (baseContests) => {
+    return baseContests.map(c => ({
+        id: `${c.id}-detail`,
+        title: c.title,
+        organizer: c.organizer,
+        category: c.category,
+        start_date: c.start_date,
+        end_date: c.end_date,
+        requirements: "대학생 누구나",
+        benefits: "상금 및 수료증",
+        description: "이 공모전은 여러분의 역량을 키워줄 좋은 기회입니다.",
+        apply_url: c.apply_url,
+    }));
+};
+
+// --- Execution ---
+
+const generatedNews = generateNews(20);
+const generatedDrafts = generateNewsDrafts(20);
+const generatedPosts = generateCommunityPosts(30);
+const generatedEvents = generateCalendarEvents(15);
+const generatedContests = generateContests(15);
+const generatedContestDetails = generateContestDetails(generatedContests);
+
 const seedPlan = [
     {
         name: "news",
-        docs: [
-            {
-                id: "news-ai-trend",
-                title: "AI 트렌드 리포트: 캠퍼스 혁신",
-                content: "AI와 데이터 사이언스가 대학 캠퍼스에서 어떻게 쓰이는지 정리했습니다.\n\n각 학과별 최신 프로젝트도 함께 확인하세요.",
-                image_url: "",
-                published_date: timestamp("2025-01-12T08:00:00+09:00"),
-                created_date: timestamp("2025-01-12T07:30:00+09:00"),
-                source: "Fine News",
-                tags: ["AI", "Campus"],
-            },
-            {
-                id: "news-job-market",
-                title: "2025 채용 시장 전망",
-                content: "신입 공채 트렌드와 하반기 채용 일정을 한눈에 살펴봅니다.",
-                published_date: timestamp("2025-01-10T09:00:00+09:00"),
-                created_date: timestamp("2025-01-10T08:50:00+09:00"),
-                source: "Fine News",
-                tags: ["취업", "리포트"],
-            },
-        ],
+        docs: generatedNews,
     },
     {
         name: "news_drafts",
-        docs: [
-            {
-                id: "draft-economy-policy",
-                title: "한국 경제 정책 브리핑",
-                summary: "금융위원회의 최신 정책을 한눈에 정리한 초안입니다.",
-                content_html: "<p>금융위원회가 2025년 상반기 정책 로드맵을 발표했습니다.</p>",
-                content_text: "금융위원회가 2025년 상반기 정책 로드맵을 발표했습니다.",
-                tags: ["경제", "정책"],
-                state: "pending",
-                created_at: FieldValue.serverTimestamp(),
-                created_by: "gemini@functions",
-            },
-        ],
+        docs: generatedDrafts,
     },
     {
         name: "community_posts",
-        docs: [
-            {
-                id: "post-welcome",
-                title: "Fine News 커뮤니티에 오신 것을 환영합니다",
-                content: "서비스 소개와 커뮤니티 이용 수칙을 꼭 확인해주세요!",
-                board_type: "공지",
-                university: "Fine University",
-                user_id: "demo-admin",
-                created_by: "admin@fine.com",
-                created_date: FieldValue.serverTimestamp(),
-                like_count: 2,
-                liked_users: ["demo-user", "demo-admin"],
-                comments: [],
-                comment_count: 0,
-            },
-            {
-                id: "post-study",
-                title: "AI 스터디 인원 모집합니다",
-                content: "3월부터 매주 토요일에 스터디 예정입니다. 관심 있는 분 댓글 주세요.",
-                board_type: "스터디",
-                university: "KAIST",
-                user_id: "demo-user",
-                created_by: "demo@fine.com",
-                created_date: FieldValue.serverTimestamp(),
-                like_count: 0,
-                liked_users: [],
-                comments: [],
-                comment_count: 0,
-            },
-        ],
+        docs: generatedPosts,
     },
     {
         name: "calendar_events",
-        docs: [
-            {
-                id: "event-market-briefing",
-                title: "경제 브리핑 라이브",
-                description: "주요 금융 지표를 함께 살펴봅니다.",
-                date: timestamp("2025-02-15T10:00:00+09:00"),
-                category: "경제",
-                is_personal: false,
-            },
-            {
-                id: "event-personal-1",
-                title: "학생증 재발급 일정",
-                description: "행정실 방문",
-                date: timestamp("2025-02-05T13:00:00+09:00"),
-                category: "마이",
-                is_personal: true,
-                user_id: "demo-user",
-                created_by: "demo@fine.com",
-                created_at: FieldValue.serverTimestamp(),
-            },
-        ],
+        docs: generatedEvents,
     },
     {
         name: "contests",
-        docs: [
-            {
-                id: "contest-esg",
-                title: "ESG 혁신 아이디어 공모전",
-                organizer: "Fine ESG Lab",
-                category: "대외활동",
-                start_date: timestamp("2025-03-01T00:00:00+09:00"),
-                end_date: timestamp("2025-04-15T23:59:59+09:00"),
-                apply_url: "https://example.com/contest/esg",
-            },
-            {
-                id: "contest-ai-career",
-                title: "AI 커리어 점프 챌린지",
-                organizer: "Fine AI Center",
-                category: "취업",
-                start_date: timestamp("2025-02-20T00:00:00+09:00"),
-                end_date: timestamp("2025-03-20T23:59:59+09:00"),
-            },
-        ],
+        docs: generatedContests,
     },
     {
         name: "contest_details",
-        docs: [
-            {
-                id: "contest-esg-detail",
-                title: "ESG 혁신 아이디어 공모전",
-                organizer: "Fine ESG Lab",
-                category: "대외활동",
-                start_date: timestamp("2025-03-01T00:00:00+09:00"),
-                end_date: timestamp("2025-04-15T23:59:59+09:00"),
-                requirements: "대학생 누구나",
-                benefits: "상금 및 인턴십 기회",
-                description: "ESG 문제 해결을 위한 창의적인 아이디어를 제안하세요.",
-                apply_url: "https://example.com/contest/esg",
-            },
-        ],
+        docs: generatedContestDetails,
     },
     {
         name: "saved_contests",
         docs: [
             {
-                id: "saved-demo-esg",
-                contest_id: "contest-esg",
+                id: "saved-demo-1",
+                contest_id: generatedContests[0].id,
                 user_id: "demo-user",
-                title: "ESG 혁신 아이디어 공모전",
-                organizer: "Fine ESG Lab",
-                end_date: timestamp("2025-04-15T23:59:59+09:00"),
+                title: generatedContests[0].title,
+                organizer: generatedContests[0].organizer,
+                end_date: generatedContests[0].end_date,
                 saved_at: FieldValue.serverTimestamp(),
             },
         ],
@@ -239,6 +253,7 @@ async function seedCollection({ name, docs }) {
     if (!Array.isArray(docs) || !docs.length) {
         return;
     }
+    // Batch limit is 500, so we chunk it if necessary (simple implementation assumes < 500 for demo)
     const batch = db.batch();
     docs.forEach((doc) => {
         const data = { ...doc };
@@ -250,15 +265,48 @@ async function seedCollection({ name, docs }) {
     await batch.commit();
 }
 
+async function seedAuth() {
+    const user = {
+        uid: "demo-user",
+        email: "demo@fine.com",
+        password: "test1234",
+        displayName: "파인러버",
+        emailVerified: true,
+    };
+
+    console.log("Attempting to seed Auth user:", user.email);
+
+    try {
+        await admin.auth().updateUser(user.uid, user);
+        console.log(`✅ Updated auth user: ${user.email}`);
+    } catch (error) {
+        if (error.code === "auth/user-not-found") {
+            try {
+                await admin.auth().createUser(user);
+                console.log(`✅ Created auth user: ${user.email}`);
+            } catch (createError) {
+                console.error("❌ Failed to create auth user:", createError);
+            }
+        } else {
+            console.warn("❌ Failed to update auth user:", error);
+        }
+    }
+}
+
 async function main() {
     console.log(`Seeding Firebase Emulator (project: ${projectId})...`);
+
+    // Seed Auth
+    await seedAuth();
+
+    // Seed Firestore
     for (const collection of seedPlan) {
-        process.stdout.write(` - ${collection.name} ... `);
+        process.stdout.write(` - ${collection.name} (${collection.docs.length} docs) ... `);
         await clearCollection(collection.name);
         await seedCollection(collection);
         console.log("done");
     }
-    console.log("✅ Emulator data prepared.");
+    console.log("✅ Emulator data prepared with enhanced dataset.");
     process.exit(0);
 }
 

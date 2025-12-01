@@ -37,13 +37,16 @@
 - **다음 단계:** 알림 지표 대시보드(옵트인율, 토픽별 전송량, 에러 비율)와 인앱 알림 센터(과거 알림 기록)를 설계.
 
 ## 12. 앱 스토어 심사 준비 _(완료 — 2025-12-02)_
-- **테스터 계정 생성:** `tester@fine.com` / `Test1234!` (일반 사용자 권한, 인증 완료 상태).
-- **앱 개인정보 처리방침(App Privacy):**
-  - 수집 항목: Contact Info (Name, Email), Identifiers (User ID, Device ID), Usage Data (Product Interaction), Crash Data.
-  - 추적(Tracking): **No** (광고 목적으로 제3자에게 데이터 제공하지 않음).
-- **권한 설정 수정:**
-  - `NSUserTrackingUsageDescription` 제거 (추적 권한 요청 팝업 삭제).
-  - `hooks/usePushNotifications.js`에서 `requestTrackingPermissionsAsync()` 호출 제거.
-  - 알림 권한(`Notifications.requestPermissionsAsync`)은 유지.
+- [x] 앱 스토어 심사 제출 (2025-12-01)
+- [x] 개인정보 처리방침 응답 가이드 작성
+- [x] `NSUserTrackingUsageDescription` 제거 (Tracking 미사용)
+- [x] `requestTrackingPermissionsAsync` 호출 제거
+- [x] 테스터 계정 생성 (`tester@fine.com`)
+- [x] README.md 한글화 및 업데이트
+- [x] 외부 심사위원용 에뮬레이터 환경 구성 (2025-12-02)
+  - [x] `demo:start` 스크립트 추가 (원클릭 실행)
+  - [x] `seedEmulator.js` 데이터 10배 증량 및 `published` 상태 적용
+  - [x] `demo-user` 자동 생성 및 로그인 정보(`demo@fine.com`) 환경변수 주입
+  - [x] `firebase.json` 에뮬레이터 포트 명시
 
 > 주요 변경 후에는 날짜·상태·다음 단계 정보를 최신화해 팀 전체가 진행 상황을 공유하도록 유지하세요.

@@ -6,7 +6,8 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "demo:start": "npx kill-port --port 8080 9099 5001 9199 4000 && concurrently \"firebase emulators:start\" \"wait-on tcp:8080 tcp:9099 && sleep 10 && FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199 GCLOUD_PROJECT=test-fine-45ecf node scripts/seedEmulator.js && export $(grep -v '^#' .env.emulator | xargs) && npm run ios\""
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -49,6 +50,9 @@
   "private": true,
   "devDependencies": {
     "@babel/core": "^7.28.5",
-    "babel-preset-expo": "^54.0.7"
+    "babel-preset-expo": "^54.0.7",
+    "concurrently": "^9.2.1",
+    "kill-port": "^2.0.1",
+    "wait-on": "^9.0.3"
   }
 }

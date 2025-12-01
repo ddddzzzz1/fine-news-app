@@ -27,22 +27,21 @@
                     "order": "DESCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "news_drafts",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "state",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "title",
+                    "order": "ASCENDING"
+                }
+            ]
         }
-    },
-    {
-        "collectionGroup": "news_drafts",
-        "queryScope": "COLLECTION",
-        "fields": [
-            {
-                "fieldPath": "state",
-                "order": "ASCENDING"
-            },
-            {
-                "fieldPath": "title",
-                "order": "ASCENDING"
-            }
-        ]
-    }
-],
-"fieldOverrides": []
+    ],
+    "fieldOverrides": []
 }
