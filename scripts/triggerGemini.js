@@ -4,12 +4,12 @@ const { getFunctions, httpsCallable } = require('firebase/functions');
 const { getAuth, signInWithEmailAndPassword } = require('firebase/auth');
 
 const firebaseConfig = {
-    apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+    apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "AIzaSyACKQ18Pzvyfd9qGB8V8dRHREjrALfrmiI",
+    authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "test-fine-45ecf.firebaseapp.com",
+    projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "test-fine-45ecf",
+    storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || "test-fine-45ecf.firebasestorage.app",
+    messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "469883809874",
+    appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:469883809874:web:256888341be6f882d52f8b",
 };
 
 const app = initializeApp(firebaseConfig);
@@ -20,8 +20,8 @@ async function triggerGeminiNews() {
     try {
         console.log('🔐 Signing in as admin...');
 
-        const email = process.env.EXPO_PUBLIC_TEST_EMAIL;
-        const password = process.env.EXPO_PUBLIC_TEST_PASSWORD;
+        const email = process.env.EXPO_PUBLIC_TEST_EMAIL || "demo@fine.com";
+        const password = process.env.EXPO_PUBLIC_TEST_PASSWORD || "test1234";
 
         await signInWithEmailAndPassword(auth, email, password);
         console.log('✅ Signed in successfully\n');

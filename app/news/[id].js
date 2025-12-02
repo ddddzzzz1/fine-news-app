@@ -5,7 +5,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, where, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
-import { ArrowLeft, Share2, CheckCircle } from 'lucide-react-native';
+import { ArrowLeft, Share2, CheckCircle, Briefcase, TrendingUp, Lightbulb } from 'lucide-react-native';
 import { Button } from '../../components/ui/button';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -238,9 +238,11 @@ export default function NewsDetail() {
                     </StyledView>
                 )}
 
-                {/* Key Data Points */}
-                {news.key_data_points && (
-                    <KeyImpactCard text={news.key_data_points} />
+                {/* Key Data Points or Impact Analysis */}
+                {news.impact_analysis ? (
+                    <ImpactAnalysisCard analysis={news.impact_analysis} />
+                ) : (
+                    news.key_data_points && <KeyImpactCard text={news.key_data_points} />
                 )}
 
                 <StyledView className="mb-8">
@@ -310,9 +312,9 @@ function KeyImpactCard({ text }) {
         secondary = Array.isArray(parsed.details) ? parsed.details.slice(0, 2) : [];
         extra = Array.isArray(parsed.highlights)
             ? parsed.highlights.map((item) => ({
-                  label: item.tag || "Highlight",
-                  value: item.text || "",
-              }))
+                label: item.tag || "Highlight",
+                value: item.text || "",
+            }))
             : [];
     }
 
@@ -398,6 +400,59 @@ function KeyImpactCard({ text }) {
                                 {item.value}
                             </StyledText>
                         ))}
+                    </StyledView>
+                )}
+            </LinearGradient>
+        </StyledView>
+    );
+
+}
+
+function ImpactAnalysisCard({ analysis }) {
+    if (!analysis) return null;
+
+    return (
+        <StyledView className="mb-6">
+            <LinearGradient
+                colors={["#f0f9ff", "#e0f2fe"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "#bae6fd" }}
+            >
+                <StyledView className="flex-row items-center mb-4">
+                    <Lightbulb size={18} color="#0284c7" />
+                    <StyledText className="text-xs font-bold text-sky-700 ml-2">
+                        WHY IT MATTERS
+                    </StyledText>
+                </StyledView>
+
+                {/* Investment Insight */}
+                {analysis.investment && (
+                    <StyledView className="mb-4">
+                        <StyledView className="flex-row items-center mb-2">
+                            <TrendingUp size={16} color="#0369a1" />
+                            <StyledText className="text-sm font-bold text-sky-900 ml-2">
+                                투자 관점
+                            </StyledText>
+                        </StyledView>
+                        <StyledText className="text-base text-sky-950 leading-6 bg-white/60 p-3 rounded-xl overflow-hidden">
+                            {analysis.investment}
+                        </StyledText>
+                    </StyledView>
+                )}
+
+                {/* Employment Insight */}
+                {analysis.employment && (
+                    <StyledView>
+                        <StyledView className="flex-row items-center mb-2">
+                            <Briefcase size={16} color="#0369a1" />
+                            <StyledText className="text-sm font-bold text-sky-900 ml-2">
+                                취업/커리어 관점
+                            </StyledText>
+                        </StyledView>
+                        <StyledText className="text-base text-sky-950 leading-6 bg-white/60 p-3 rounded-xl overflow-hidden">
+                            {analysis.employment}
+                        </StyledText>
                     </StyledView>
                 )}
             </LinearGradient>

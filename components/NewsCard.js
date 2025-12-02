@@ -5,7 +5,7 @@ import { Card } from "./ui/card";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { styled } from "nativewind";
-import { TrendingUp, Tag } from "lucide-react-native";
+import { TrendingUp, Tag, Lightbulb } from "lucide-react-native";
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
@@ -74,7 +74,11 @@ const formatKeyDataPoints = (raw) => {
 export default function NewsCard({ news }) {
     const displayDate = toDate(news.published_date) || toDate(news.created_date);
     const tags = Array.isArray(news.tags) ? news.tags.slice(0, 3) : [];
+    const impactSummary = news.impact_analysis?.summary;
     const keyDataSummary = useMemo(() => formatKeyDataPoints(news?.key_data_points), [news?.key_data_points]);
+
+    const insightText = impactSummary || keyDataSummary;
+    const InsightIcon = impactSummary ? Lightbulb : TrendingUp;
 
     return (
         <Link href={`/news/${news.id}`} asChild>
@@ -106,12 +110,12 @@ export default function NewsCard({ news }) {
                         </StyledText>
                     )}
 
-                    {/* Key Data Points (New Feature) */}
-                    {keyDataSummary && (
+                    {/* Key Data Points or Impact Analysis */}
+                    {insightText && (
                         <StyledView className="bg-indigo-50 rounded-lg p-3 mb-4 flex-row items-start">
-                            <TrendingUp size={16} color="#4f46e5" style={{ marginTop: 2, marginRight: 8 }} />
+                            <InsightIcon size={16} color="#4f46e5" style={{ marginTop: 2, marginRight: 8 }} />
                             <StyledText className="text-sm text-indigo-900 font-medium flex-1">
-                                {keyDataSummary}
+                                {insightText}
                             </StyledText>
                         </StyledView>
                     )}

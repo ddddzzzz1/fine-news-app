@@ -10,12 +10,14 @@
     "demo:start": "npx kill-port --port 8080 9099 5001 9199 4000 && concurrently \"firebase emulators:start\" \"wait-on tcp:8080 tcp:9099 && sleep 10 && FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199 GCLOUD_PROJECT=test-fine-45ecf node scripts/seedEmulator.js && export $(grep -v '^#' .env.emulator | xargs) && npm run ios\""
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-masked-view/masked-view": "^0.3.2",
     "@tanstack/react-query": "^5.90.10",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
     "expo": "~54.0.25",
     "expo-auth-session": "^7.0.9",
     "expo-blur": "~15.0.7",
