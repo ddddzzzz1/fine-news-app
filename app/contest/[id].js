@@ -30,7 +30,7 @@ export default function ContestDetail() {
         queryKey: ["contest-detail", id],
         queryFn: async () => {
             if (!id) return null;
-            const ref = doc(db, "contests", id);
+            const ref = doc(db, "contest_details", id);
             const snap = await getDoc(ref);
             return snap.exists() ? { id: snap.id, ...snap.data() } : null;
         },
