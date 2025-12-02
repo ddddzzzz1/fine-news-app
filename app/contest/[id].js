@@ -37,6 +37,15 @@ export default function ContestDetail() {
         enabled: !!id,
     });
 
+    const resolveDate = (date) => {
+        if (!date) return null;
+        if (date instanceof Date) return date;
+        if (typeof date?.toDate === 'function') return date.toDate();
+        if (typeof date === 'string') return new Date(date);
+        if (typeof date === 'number') return new Date(date);
+        return new Date(date);
+    };
+
     const handleSaveContest = async () => {
         if (!contest || !id) return;
         if (!userId) {
@@ -60,15 +69,18 @@ export default function ContestDetail() {
             });
 
             if (contest.end_date) {
-                await setDoc(doc(db, "calendar_events", `saved-${userId}-${id}`), {
-                    title: `[관심] ${contest.title}`,
-                    description: "",
-                    date: Timestamp.fromDate(new Date(contest.end_date)),
-                    category: "마이",
-                    is_personal: true,
-                    user_id: userId,
-                    created_by: currentUser?.email || "",
-                });
+                const endDate = resolveDate(contest.end_date);
+                if (endDate && !isNaN(endDate.getTime())) {
+                    await setDoc(doc(db, "calendar_events", `saved-${userId}-${id}`), {
+                        title: `[관심] ${contest.title}`,
+                        description: "",
+                        date: Timestamp.fromDate(endDate),
+                        category: "마이",
+                        is_personal: true,
+                        user_id: userId,
+                        created_by: currentUser?.email || "",
+                    });
+                }
             }
 
             Alert.alert("관심 공모전 추가", "캘린더와 프로필에서 확인할 수 있습니다.");
@@ -160,7 +172,8 @@ export default function ContestDetail() {
 }
 
 function safeFormatDate(value) {
-    const date = value instanceof Date ? value : new Date(value);
+    if (!value) return "날짜 미정";
+    const date = typeof value?.toDate === 'function' ? value.toDate() : new Date(value);
     if (isNaN(date.getTime())) return "날짜 미정";
     try {
         return format(date, "yyyy.MM.dd", { locale: ko });
