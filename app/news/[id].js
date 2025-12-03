@@ -5,13 +5,12 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, where, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
-import { ArrowLeft, Share2, CheckCircle, Briefcase, TrendingUp, Lightbulb } from 'lucide-react-native';
+import { ArrowLeft, Share2, CheckCircle, Briefcase, TrendingUp, Lightbulb, User, Calendar, MapPin, HelpCircle, Zap, FileText } from 'lucide-react-native';
 import { Button } from '../../components/ui/button';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Skeleton } from '../../components/ui/skeleton';
 import NewsCard from '../../components/NewsCard';
-import RenderHtml from 'react-native-render-html';
 import { styled } from 'nativewind';
 import { auth } from '../../firebaseConfig';
 import { Edit } from 'lucide-react-native';
@@ -23,6 +22,7 @@ const StyledText = styled(Text);
 const StyledImage = styled(Image);
 const StyledSafeAreaView = styled(SafeAreaView);
 const StyledScrollView = styled(ScrollView);
+const StyledLinearGradient = styled(LinearGradient);
 
 const toDate = (value) => {
     if (!value) return null;
@@ -246,19 +246,20 @@ export default function NewsDetail() {
                 )}
 
                 <StyledView className="mb-8">
-                    {news.content_html ? (
-                        <RenderHtml
-                            contentWidth={width - 32}
-                            source={{ html: news.content_html }}
-                            baseStyle={{ fontSize: 17, lineHeight: 28, color: '#1f2937' }}
-                        />
-                    ) : (
-                        news.content?.split('\n\n').map((paragraph, index) => (
+                    {(() => {
+                        const contentText = news.content_text || news.content;
+                        const fiveW1HData = parseFiveWOneH(contentText);
+
+                        if (fiveW1HData) {
+                            return <FiveWOneHCard data={fiveW1HData} />;
+                        }
+
+                        return contentText?.split('\n\n').map((paragraph, index) => (
                             <StyledText key={index} className="text-[17px] text-gray-800 mb-5 leading-7">
                                 {paragraph}
                             </StyledText>
-                        ))
-                    )}
+                        ));
+                    })()}
                 </StyledView>
 
                 {/* Related News Section */}
@@ -456,6 +457,104 @@ function ImpactAnalysisCard({ analysis }) {
                     </StyledView>
                 )}
             </LinearGradient>
+        </StyledView>
+    );
+}
+
+const parseFiveWOneH = (text) => {
+    if (!text) return null;
+
+    const markers = ['(Who)', '(When)', '(Where)', '(What)', '(Why)', '(How)'];
+    const foundMarkers = markers.filter(m => text.includes(m));
+
+    // Require at least 3 markers to consider it a 5W1H structure
+    if (foundMarkers.length < 3) return null;
+
+    const sections = {};
+    let currentMarker = null;
+
+    // Split by markers but keep them in the array
+    const parts = text.split(/(\((?:Who|When|Where|What|Why|How)\))/g);
+
+    parts.forEach(part => {
+        const trimmed = part.trim();
+        if (!trimmed) return;
+
+        if (markers.includes(trimmed)) {
+            currentMarker = trimmed.replace(/[()]/g, '');
+        } else if (currentMarker) {
+            sections[currentMarker] = (sections[currentMarker] || '') + trimmed + ' ';
+        }
+    });
+
+    Object.keys(sections).forEach(key => {
+        sections[key] = sections[key].trim();
+    });
+
+    return Object.keys(sections).length > 0 ? sections : null;
+};
+
+function FiveWOneHCard({ data }) {
+    if (!data) return null;
+
+    const config = {
+        Who: { icon: User, label: "누가", color: "#059669", bg: "#ecfdf5" },
+        When: { icon: Calendar, label: "언제", color: "#0891b2", bg: "#ecfeff" },
+        Where: { icon: MapPin, label: "어디서", color: "#7c3aed", bg: "#f5f3ff" },
+        What: { icon: FileText, label: "무엇을", color: "#db2777", bg: "#fdf2f8" },
+        Why: { icon: HelpCircle, label: "왜", color: "#ea580c", bg: "#fff7ed" },
+        How: { icon: Zap, label: "어떻게", color: "#ca8a04", bg: "#fefce8" }
+    };
+
+    const order = ['Who', 'When', 'Where', 'What', 'Why', 'How'];
+
+    return (
+        <StyledView className="mb-6">
+            <StyledLinearGradient
+                colors={["#f0fdf4", "#ecfdf5"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "#d1fae5" }}
+            >
+                <StyledView className="flex-row items-center mb-6">
+                    <StyledView className="bg-emerald-100 p-1.5 rounded-full mr-2">
+                        <FileText size={18} color="#059669" />
+                    </StyledView>
+                    <StyledText className="text-sm font-bold text-emerald-800">
+                        핵심 요약 (5W1H)
+                    </StyledText>
+                </StyledView>
+
+                <StyledView className="space-y-5">
+                    {order.map(key => {
+                        if (!data[key]) return null;
+                        const conf = config[key];
+                        const Icon = conf.icon;
+
+                        return (
+                            <StyledView key={key} className="flex-row items-start">
+                                <StyledView
+                                    className="w-8 h-8 rounded-full items-center justify-center mr-3 mt-0.5"
+                                    style={{ backgroundColor: conf.bg }}
+                                >
+                                    <Icon size={14} color={conf.color} />
+                                </StyledView>
+                                <StyledView className="flex-1">
+                                    <StyledText
+                                        className="text-xs font-bold mb-1"
+                                        style={{ color: conf.color }}
+                                    >
+                                        {conf.label} ({key})
+                                    </StyledText>
+                                    <StyledText className="text-[16px] text-gray-800 leading-6">
+                                        {data[key]}
+                                    </StyledText>
+                                </StyledView>
+                            </StyledView>
+                        );
+                    })}
+                </StyledView>
+            </StyledLinearGradient>
         </StyledView>
     );
 }

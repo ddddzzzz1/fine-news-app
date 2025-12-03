@@ -1,14 +1,15 @@
 import React, { useMemo } from "react";
 import { Link } from "expo-router";
 import { View, Text, Pressable } from "react-native";
-import { Card } from "./ui/card";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { styled } from "nativewind";
-import { TrendingUp, Tag, Lightbulb } from "lucide-react-native";
+import { TrendingUp, Tag, Lightbulb, ChevronRight } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
+const StyledLinearGradient = styled(LinearGradient);
 
 const toDate = (value) => {
     if (!value) return null;
@@ -83,55 +84,73 @@ export default function NewsCard({ news }) {
     return (
         <Link href={`/news/${news.id}`} asChild>
             <Pressable>
-                <Card className="border border-gray-100 shadow-sm mb-3 bg-white rounded-xl p-5">
-                    {/* Header: State & Date */}
-                    <StyledView className="flex-row items-center justify-between mb-3">
-                        <StyledView className="flex-row items-center space-x-2">
-                            {news.state === 'pending' && (
-                                <StyledView className="bg-yellow-100 px-2 py-0.5 rounded mr-2">
-                                    <StyledText className="text-xs font-bold text-yellow-800">검토 중</StyledText>
-                                </StyledView>
-                            )}
-                            <StyledText className="text-xs text-gray-400 font-medium">
-                                {displayDate ? format(displayDate, "M월 d일 HH:mm", { locale: ko }) : "날짜 미정"}
-                            </StyledText>
+                <StyledView className="mb-4 shadow-sm">
+                    <StyledLinearGradient
+                        colors={['#ffffff', '#f8fafc']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        className="rounded-2xl p-5 border border-slate-100"
+                    >
+                        {/* Header: State & Date */}
+                        <StyledView className="flex-row items-center justify-between mb-3">
+                            <StyledView className="flex-row items-center space-x-2">
+                                {news.state === 'pending' && (
+                                    <StyledView className="bg-amber-100 px-2 py-0.5 rounded-full mr-2 border border-amber-200">
+                                        <StyledText className="text-[10px] font-bold text-amber-800">검토 중</StyledText>
+                                    </StyledView>
+                                )}
+                                <StyledText className="text-xs text-slate-400 font-medium">
+                                    {displayDate ? format(displayDate, "M월 d일 HH:mm", { locale: ko }) : "날짜 미정"}
+                                </StyledText>
+                            </StyledView>
                         </StyledView>
-                    </StyledView>
 
-                    {/* Title */}
-                    <StyledText className="font-bold text-lg text-gray-900 mb-3 leading-7" numberOfLines={2}>
-                        {news.title}
-                    </StyledText>
-
-                    {/* Summary (Optional) */}
-                    {news.summary && (
-                        <StyledText className="text-sm text-gray-600 mb-4 leading-5" numberOfLines={2}>
-                            {news.summary}
+                        {/* Title */}
+                        <StyledText className="font-bold text-[19px] text-slate-900 mb-2 leading-tight tracking-tight" numberOfLines={2}>
+                            {news.title}
                         </StyledText>
-                    )}
 
-                    {/* Key Data Points or Impact Analysis */}
-                    {insightText && (
-                        <StyledView className="bg-indigo-50 rounded-lg p-3 mb-4 flex-row items-start">
-                            <InsightIcon size={16} color="#4f46e5" style={{ marginTop: 2, marginRight: 8 }} />
-                            <StyledText className="text-sm text-indigo-900 font-medium flex-1">
-                                {insightText}
+                        {/* Summary (Optional) */}
+                        {news.summary && (
+                            <StyledText className="text-[13px] text-slate-500 mb-4 leading-5" numberOfLines={2}>
+                                {news.summary}
                             </StyledText>
-                        </StyledView>
-                    )}
+                        )}
 
-                    {/* Footer: Tags */}
-                    {tags.length > 0 && (
-                        <StyledView className="flex-row flex-wrap gap-2 mt-1">
-                            {tags.map((tag, index) => (
-                                <StyledView key={index} className="bg-gray-100 px-2.5 py-1 rounded-md flex-row items-center">
-                                    <Tag size={10} color="#6b7280" style={{ marginRight: 4 }} />
-                                    <StyledText className="text-xs text-gray-600">{tag}</StyledText>
+                        {/* Key Data Points or Impact Analysis */}
+                        {insightText && (
+                            <StyledLinearGradient
+                                colors={['#eff6ff', '#e0e7ff']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                className="rounded-xl p-3.5 mb-4 flex-row items-start border border-indigo-100/50"
+                            >
+                                <StyledView className="bg-white p-1 rounded-full mr-2.5 shadow-sm">
+                                    <InsightIcon size={14} color="#4f46e5" />
                                 </StyledView>
-                            ))}
+                                <StyledText className="text-[13px] text-indigo-900 font-medium flex-1 leading-5">
+                                    {insightText}
+                                </StyledText>
+                            </StyledLinearGradient>
+                        )}
+
+                        {/* Footer: Tags & Action */}
+                        <StyledView className="flex-row items-center justify-between mt-1">
+                            <StyledView className="flex-row flex-wrap gap-1.5 flex-1 mr-2">
+                                {tags.map((tag, index) => (
+                                    <StyledView key={index} className="bg-slate-100 px-2 py-1 rounded-md flex-row items-center border border-slate-200">
+                                        <Tag size={9} color="#64748b" style={{ marginRight: 3 }} />
+                                        <StyledText className="text-[11px] text-slate-600 font-medium">{tag}</StyledText>
+                                    </StyledView>
+                                ))}
+                            </StyledView>
+
+                            <StyledView className="bg-slate-50 p-1.5 rounded-full">
+                                <ChevronRight size={16} color="#94a3b8" />
+                            </StyledView>
                         </StyledView>
-                    )}
-                </Card>
+                    </StyledLinearGradient>
+                </StyledView>
             </Pressable>
         </Link>
     );

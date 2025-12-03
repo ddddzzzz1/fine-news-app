@@ -808,7 +808,23 @@ async function runNewsFactory() {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+    const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-pro",
+        generationConfig: {
+            temperature: 0.2,        // 정확성 ↑ 창의성 ↓
+            topP: 0.6,               // 상위 40% 확률만 사용
+            topK: 40,                // Gemini 안정 sweet spot
+            maxOutputTokens: 4096,   // HTML + JSON용 넉넉한 길이
+            responseMimeType: "application/json", // JSON 강제
+        },
+        safetySettings: [
+            {
+                category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                threshold: "BLOCK_NONE"
+            }
+        ]
+
+    });
 
     // 1. Precise Time Context
     const now = new Date();
@@ -817,62 +833,95 @@ async function runNewsFactory() {
 
     // 2. The "Editor Assistant" Prompt
     const prompt = `
-    상황 (Context):
-    - **현재 시각 (KST):** ${currentDate}
-    - **역할:** 경제부 수석 에디터의 리서치 어시스턴트 (타겟 독자: 대학생 및 사회초년생)
+    역할(Role):
+당신은 "경제부 수석 에디터의 리서치 어시스턴트"예요.
+대학생과 사회초년생 독자를 위한 기사 재작성의 기초 데이터를 만들어요.
 
-    임무 (Task):
-    지난 24시간 동안 발생한 **대한민국 경제 뉴스** 중 가장 중요하고 파급력이 큰 기사 하나를 선정하세요.
-    에디터가 이 내용을 바탕으로 기사를 재작성할 것이므로, **정확한 수치, 팩트, 그리고 구체적인 내용**에 집중해야 합니다.
-    **중요:** 이 뉴스가 **투자(Investment)**와 **취업/채용(Employment)** 시장에 미치는 영향을 심도 있게 분석하여 제공해야 합니다.
+상황(Context):
+- 현재 시각(KST): 2025년 12월 03일 13:23
+- 당신의 임무는 지난 24시간 동안 나온 "대한민국 경제 뉴스" 중 가장 중요하고 파급력이 큰 단 1건을 선정하는 것이에요.
 
-    톤앤매너 (Tone & Manner):
-    1. **분석은 날카롭게:** 겉핥기식이 아닌, 실제 시장의 움직임과 기업의 의도를 꿰뚫어 보는 통찰력을 보여주세요.
-    2. **어조는 친절하게:** 독자가 사회초년생임을 감안하여, 딱딱한 문어체보다는 **부드러운 구어체('~에요', '~할 수 있어요', '~인 것 같아요' 등)**를 사용하세요.
-    3. **연결성:** "그래서 이게 나랑 무슨 상관인데?"라는 질문에 답할 수 있도록, 독자의 삶(취업, 소액 투자)과 연결 지어 설명해주세요.
+⚠️ 매우 중요한 규칙(Anchoring Prevention):
+- 아래 JSON 스키마에 등장하는 단어, 수치, 문구는 "형식 예시"일 뿐이에요.
+- 예시 단어(예: 특정 산업명), 예시 지표명(예: 특정 경제지표), 예시 숫자(예: -0.0%), 예시 태그 등은 절대로 실제 답변에 사용하면 안 돼요.
+- 실제 기사 본문과 제목에서 확인한 "진짜 문장/지표/수치/기관명/단어"만 사용해야 해요.
+- 사전에 특정 산업(예: 반도체, 자동차, 금융 등)으로 주제를 고정해서는 안 되고, 반드시 검색 결과 기반으로 선택해야 해요.
 
-    검색 규칙 (Strict):
-    1. **검색 대상:** 대한민국 주요 경제 언론사의 최신 뉴스.
-    2. **시간 필터:** 기사의 발행 시간을 반드시 확인하세요. [${currentDate}] 또는 지난 24시간 이내의 기사가 아니라면 **절대 무시하세요**.
-    3. **주제 선정:** 일반적인 칼럼이나 사설보다는 정부 정책 변화, 주요 기업의 M&A/실적 발표, 거시경제 지표 발표를 우선순위에 두세요.
+--------------------------------------------
+[뉴스 선정 절차: 반드시 이 순서를 따라야 해요]
+--------------------------------------------
+1단계) 웹 검색 도구로 다음 조건의 뉴스를 수집:
+    - 대한민국 주요 경제 언론사 기사
+    - 발행 시각이 "현재 시각 기준 24시간 이내"
 
-    출력 요구사항 (Output Requirement):
-    아래 스키마에 맞춰 JSON 객체로 반환하세요. 출처(URL)나 언론사 이름은 포함하지 마세요. 모든 수치는 원문의 표기 그대로 정확하게 유지하세요.
+2단계) 최소 5개 이상의 기사를 확인한 뒤,
+    "정부 정책 변화 / 금리·물가 / 거시경제 지표 / 대기업 실적·전략 / 수출·산업 구조 변화"
+    같은 분야 중 파급력이 가장 큰 단 1건을 고르세요.
 
-    {
-        "title": "string · 팩트 중심의 중립적인 한국어 헤드라인",
-        "summary": "string · 핵심 내용을 요약한 3개의 문장 (줄바꿈 \\n 으로 구분)",
-        "content_html": "string · <p>, <ul>, <b> 태그를 활용한 풍부한 HTML 본문 (5W1H 원칙 준수)",
-        "content_text": "string · 본문의 일반 텍스트 버전",
-        "tags": ["경제", "통화정책", "반도체", "..."],
-        "published_date": "YYYY-MM-DD HH:mm (24시간제, KST 기준)",
-        "impact_analysis": {
-            "summary": "string · 이 뉴스가 중요한 이유 한 줄 요약 (한국어, '~에요'체)",
-            "investment": "string · 투자자 관점에서의 상세 분석 (날카롭지만 친절하게, '~에요'체)",
-            "employment": "string · 구직자/직장인 관점에서의 상세 분석 (실질적인 조언, '~에요'체)"
-        },
-        "key_data_points": {
-            "hero": {
-                "label": "예: 전산업생산",
-                "value": "-0.8%",
-                "unit": "전월비",
-                "insight": "3개월 만에 감소 전환"
-            },
-            "details": [
-                { "label": "반도체", "value": "-4.2%", "note": "수출 부진 영향" },
-                { "label": "소비", "value": "-1.5%", "note": "재화 소비 위축" },
-                { "label": "설비투자", "value": "-2.2%", "note": "기계류 투자 감소" }
-            ],
-            "highlights": [
-                { "tag": "생산", "text": "전산업생산 3개월 만에 하락세" }
-            ],
-            "timeline": [
-                { "emoji": "🏭", "step": "반도체 생산 급감 (-4.2%)" },
-                { "emoji": "📉", "step": "전산업 생산 지수 하락 (-0.8%)" }
-            ]
-        }
-    }
-    `;
+3단계) 선택한 뉴스 기사에 등장하는 내용만 기반으로
+    정확한 수치·팩트·핵심 내용을 추출하세요.
+
+4단계) 아래 JSON 스키마를 형식대로 채우되,
+    모든 텍스트는 실제 기사 내용만 사용하여 재작성하세요.
+
+--------------------------------------------
+[톤앤매너]
+--------------------------------------------
+- 분석은 날카롭되, 어조는 구어체로 부드럽게 (“~에요”, “~할 수 있어요”)
+- 독자가 던질 질문 “그래서 이게 나랑 무슨 상관인데?”에 답하도록 서술
+- 취업(Employment)·투자(Investment) 시장에 어떤 영향을 주는지 구체적으로 설명
+
+--------------------------------------------
+[출력 형식 – JSON Only]
+--------------------------------------------
+아래 JSON은 “형식 예시”이며,
+모든 값은 실제 기사에서 확인한 진짜 내용으로 교체해야 해요.
+
+{
+  "title": "<기사의 중립적 한국어 헤드라인>",
+  "summary": "<핵심을 담은 3문장 요약 (문장 사이에 \\n)>",
+  "content_text": "string · 본문의 일반 텍스트 버전 (5W1H 원칙 준수)",
+  "tags": ["<실제 기사 태그1>", "<태그2>", "<태그3>"],
+  "published_date": "<YYYY-MM-DD HH:mm (KST)>",
+  "impact_analysis": {
+    "summary": "<이 뉴스가 중요한 이유 한 줄 요약 (~에요)>",
+    "investment": "<투자자 관점 분석 (~에요)>",
+    "employment": "<취업/직장인 관점 분석 (~에요)>"
+  },
+  "key_data_points": {
+    "hero": {
+      "label": "<지표 이름>",
+      "value": "<수치>",
+      "unit": "<단위>",
+      "insight": "<지표 해석 한 줄>"
+    },
+    "details": [
+      { "label": "<세부 지표>", "value": "<수치>", "note": "<설명>" }
+    ],
+    "highlights": [
+      { "tag": "<주제>", "text": "<강조할 포인트>" }
+    ],
+    "timeline": [
+      { "emoji": "🔍", "step": "<주요 발생 단계 1>" },
+      { "emoji": "➡️", "step": "<주요 발생 단계 2>" }
+    ]
+  }
+}
+
+--------------------------------------------
+[최종 자기 점검 – 반드시 수행]
+--------------------------------------------
+응답을 생성하기 전, 아래 3가지 질문에 "YES"여야 해요.
+
+1) 이 프롬프트 안의 예시 단어나 예시 숫자는 하나도 쓰지 않았나요?
+2) 선택한 뉴스 기사 본문에 실제로 등장하는 단어와 숫자만 썼나요?
+3) 주제가 특정 산업이나 예시 키워드로 자동 고정되지 않았고,
+   검색 결과에서 중요도가 가장 높은 기사를 실제로 선택했나요?
+
+모두 YES라면 JSON을 출력하세요.
+아니라면 검색과 내용을 다시 점검한 뒤 수정하세요.
+}
+ `;
 
     try {
         const result = await model.generateContent(prompt);
@@ -958,7 +1007,13 @@ async function runBriefingWorkflow() {
         `).join("\n");
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.5-pro",
+            generationConfig: {
+                temperature: 0.7,
+                topP: 0.95,
+            },
+        });
 
         const briefingPrompt = `
         Based on the following news articles collected over the last 6 hours, create a comprehensive "Daily Briefing" (or "Periodic Briefing") in Korean.
