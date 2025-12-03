@@ -3,9 +3,9 @@ import { View, Text, ScrollView, Image, TouchableOpacity, Share, Alert, useWindo
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { doc, getDoc, collection, query, orderBy, limit, getDocs, where, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, query, orderBy, limit, getDocs, where, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
-import { ArrowLeft, Share2, CheckCircle, Briefcase, TrendingUp, Lightbulb, User, Calendar, MapPin, HelpCircle, Zap, FileText } from 'lucide-react-native';
+import { ArrowLeft, Share2, CheckCircle, Briefcase, TrendingUp, Lightbulb, User, Calendar, MapPin, HelpCircle, Zap, FileText, Trash2 } from 'lucide-react-native';
 import { Button } from '../../components/ui/button';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -110,6 +110,30 @@ export default function NewsDetail() {
         [news?.created_date, news?.published_date]
     );
 
+    const handleDelete = async () => {
+        Alert.alert(
+            "뉴스 삭제",
+            "정말로 이 뉴스를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+            [
+                { text: "취소", style: "cancel" },
+                {
+                    text: "삭제",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await deleteDoc(doc(db, 'news_drafts', id));
+                            Alert.alert("삭제 완료", "뉴스가 삭제되었습니다.");
+                            router.back();
+                        } catch (e) {
+                            console.error(e);
+                            Alert.alert("오류", "삭제 중 문제가 발생했습니다.");
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const handleShare = useCallback(async () => {
         if (!news) return;
         const shareUrl =
@@ -204,6 +228,14 @@ export default function NewsDetail() {
                                 onPress={() => router.push(`/news/edit/${id}`)}
                             >
                                 <Edit size={20} color="#4f46e5" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="rounded-full mr-2"
+                                onPress={handleDelete}
+                            >
+                                <Trash2 size={20} color="#ef4444" />
                             </Button>
                         </>
                     )}
