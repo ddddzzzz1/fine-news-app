@@ -22,7 +22,8 @@ import { Badge } from "../../components/ui/badge";
 import { useAdminClaims } from "../../hooks/useAdminClaims";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, Database } from "lucide-react-native";
+import { seedContestsClient } from "../../lib/seedContestsClient";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 const StyledScrollView = styled(ScrollView);
@@ -153,6 +154,24 @@ export default function AdminReports() {
         ]);
     };
 
+    const handleSeedData = () => {
+        Alert.alert("데이터 생성", "공모전 더미 데이터를 생성하시겠습니까?", [
+            { text: "취소", style: "cancel" },
+            {
+                text: "생성",
+                onPress: async () => {
+                    try {
+                        await seedContestsClient();
+                        Alert.alert("완료", "공모전 데이터가 생성되었습니다.");
+                    } catch (error) {
+                        console.log("Seed error", error);
+                        Alert.alert("오류", "데이터 생성 중 문제가 발생했습니다.");
+                    }
+                },
+            },
+        ]);
+    };
+
     return (
         <StyledSafeAreaView edges={["top"]} className="flex-1 bg-gray-50">
             <Stack.Screen options={{ headerShown: false }} />
@@ -161,7 +180,9 @@ export default function AdminReports() {
                     <ChevronLeft size={20} color="#111827" />
                 </Button>
                 <StyledText className="text-lg font-semibold text-gray-900">신고 관리</StyledText>
-                <View style={{ width: 40 }} />
+                <Button variant="ghost" size="icon" className="rounded-full" onPress={handleSeedData}>
+                    <Database size={20} color="#4b5563" />
+                </Button>
             </StyledView>
 
             <StyledScrollView className="flex-1 px-4 py-4" contentContainerStyle={{ paddingBottom: 32 }}>

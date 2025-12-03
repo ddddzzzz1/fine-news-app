@@ -28,7 +28,7 @@
 ## 11. 푸시 알림 _(진행 중 — 2025-02-21)_
 - `docs/push-notifications.md`에 목표 경험, 데이터 모델, Functions 설계를 문서화.
 - `expo-notifications`로 로그인 사용자의 `user_push_settings/{uid}`에 Expo 토큰·선호도를 저장.
-- Firestore에 `user_push_settings` 컬렉션을 추가하고 마이 탭 → “알림 설정” 화면에서 토글·조용한 시간을 설정하도록 구성.
+- Firestore에 `user_push_settings` 컬렉션을 추가하고 마이 탭 → “알림 설정” 화면에서 토글·조용한 시간을 설정하도록 구성. 
 - Functions 확장:
   - `processNotificationQueue`: 뉴스레터/공지 등 토픽성 알림 큐 처리.
   - `sendContestDeadlineDigest`: 24시간 내 마감되는 저장 공고(대외활동/취업/자격증)를 사용자별 다이제스트로 알림.
@@ -45,7 +45,7 @@
 - [x] README.md 한글화 및 업데이트
 - [x] 외부 심사위원용 에뮬레이터 환경 구성 (2025-12-02)
   - [x] `demo:start` 스크립트 추가 (원클릭 실행)
-  - [x] `seedEmulator.js` 데이터 10배 증량 및 `published` 상태 적용
+  - [x] `.lator.js` 데이터 10배 증량 및 `published` 상태 적용
   - [x] `demo-user` 자동 생성 및 로그인 정보(`demo@fine.com`) 환경변수 주입
   - [x] `firebase.json` 에뮬레이터 포트 명시
 

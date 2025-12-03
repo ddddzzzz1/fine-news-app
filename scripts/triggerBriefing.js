@@ -16,7 +16,7 @@ const app = initializeApp(firebaseConfig);
 const functions = getFunctions(app, 'asia-northeast3');
 const auth = getAuth(app);
 
-async function triggerBriefing() {
+async function () {
     try {
         console.log('🔐 Signing in as admin...');
 
@@ -28,7 +28,7 @@ async function triggerBriefing() {
 
         console.log('🤖 Triggering Briefing generation...');
 
-        const generateBriefing = httpsCallable(functions, 'debugTriggerBriefing');
+        const generateBriefing = httpsCallable(functions, 'debug');
         const result = await generateBriefing();
 
         console.log('\n✅ Function executed!');
@@ -50,4 +50,4 @@ async function triggerBriefing() {
     }
 }
 
-triggerBriefing();
+();

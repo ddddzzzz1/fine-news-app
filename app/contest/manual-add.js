@@ -5,7 +5,7 @@ import { styled } from "nativewind";
 import { Stack, useRouter } from "expo-router";
 import { Button } from "../../components/ui/button";
 import { useAdminClaims } from "../../hooks/useAdminClaims";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, Timestamp, doc, writeBatch } from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -53,7 +53,7 @@ export default function ContestManualAdd() {
     const [endDay, setEndDay] = useState("");
     const [applyUrl, setApplyUrl] = useState("");
     const [description, setDescription] = useState("");
-    const [eligibility, setEligibility] = useState("");
+    const [requirements, setRequirements] = useState("");
     const [benefits, setBenefits] = useState("");
     const [isSaving, setIsSaving] = useState(false);
 
@@ -82,21 +82,44 @@ export default function ContestManualAdd() {
             Alert.alert("입력 확인", "마감일 형식을 확인해 주세요. (예: 2025, 12, 30)");
             return;
         }
+
+        // Convert ISO strings to Firestore Timestamps
+        const startTimestamp = parsedStartIso ? Timestamp.fromDate(new Date(parsedStartIso)) : null;
+        const endTimestamp = Timestamp.fromDate(new Date(parsedEndIso));
+
         setIsSaving(true);
         try {
-            await addDoc(collection(db, "contests"), {
+            // Create a new document reference to get an ID
+            const newDocRef = doc(collection(db, "contests"));
+            const newId = newDocRef.id;
+
+            const commonData = {
                 title: title.trim(),
                 organizer: organizer.trim(),
                 category,
-                start_date: parsedStartIso,
-                end_date: parsedEndIso,
+                start_date: startTimestamp,
+                end_date: endTimestamp,
                 apply_url: applyUrl.trim(),
                 description: description.trim(),
-                eligibility: eligibility.trim(),
-                benefits: benefits.trim(),
+                image_url: "", // Placeholder
                 created_by: currentUser?.email || null,
                 created_at: serverTimestamp(),
+            };
+
+            const batch = writeBatch(db);
+
+            // 1. Summary collection
+            batch.set(doc(db, "contests", newId), commonData);
+
+            // 2. Detail collection
+            batch.set(doc(db, "contest_details", newId), {
+                ...commonData,
+                requirements: requirements.trim(),
+                benefits: benefits.trim(),
             });
+
+            await batch.commit();
+
             await queryClient.invalidateQueries({ queryKey: ["contests"] });
             Alert.alert("등록 완료", "공모전이 추가되었습니다.", [
                 { text: "확인", onPress: () => router.back() },
@@ -150,9 +173,8 @@ export default function ContestManualAdd() {
                                 <StyledTouchableOpacity
                                     key={option}
                                     onPress={() => setCategory(option)}
-                                    className={`px-3 py-2 rounded-full border ${
-                                        category === option ? "bg-indigo-50 border-indigo-200" : "bg-white border-gray-200"
-                                    }`}
+                                    className={`px-3 py-2 rounded-full border ${category === option ? "bg-indigo-50 border-indigo-200" : "bg-white border-gray-200"
+                                        }`}
                                 >
                                     <StyledText
                                         className={category === option ? "text-indigo-700 text-sm" : "text-gray-700 text-sm"}
@@ -191,8 +213,8 @@ export default function ContestManualAdd() {
                     />
                     <Field
                         label="지원 자격"
-                        value={eligibility}
-                        onChangeText={setEligibility}
+                        value={requirements}
+                        onChangeText={setRequirements}
                         placeholder="지원 가능 대상, 학년, 전공 등"
                         multiline
                     />

@@ -1,10 +1,10 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-require('dotenv').config({ path: '.env.emulator' });
+require('dotenv').config({ path: '.env..' });
 
 async function runTest() {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-        console.error("❌ GEMINI_API_KEY not found in .env.emulator");
+        console.error("❌ GEMINI_API_KEY not found in .env..");
         process.exit(1);
     }
 

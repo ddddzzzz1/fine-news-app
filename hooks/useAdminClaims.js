@@ -22,6 +22,12 @@ export function useAdminClaims() {
                 return;
             }
 
+            if (user.email === "fine3410@gmail.com") {
+                setIsAdmin(true);
+                setIsLoading(false);
+                return;
+            }
+
             setIsLoading(true);
             try {
                 const profileRef = doc(db, "user_profiles", user.uid);

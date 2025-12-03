@@ -30,9 +30,24 @@ export default function ContestDetail() {
         queryKey: ["contest-detail", id],
         queryFn: async () => {
             if (!id) return null;
-            const ref = doc(db, "contest_details", id);
-            const snap = await getDoc(ref);
-            return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+            // 1. Try fetching from contest_details (rich data)
+            const detailRef = doc(db, "contest_details", id);
+            const detailSnap = await getDoc(detailRef);
+
+            if (detailSnap.exists()) {
+                return { id: detailSnap.id, ...detailSnap.data() };
+            }
+
+            // 2. Fallback: Try fetching from contests (summary data)
+            // This handles legacy data or items where details weren't created
+            const summaryRef = doc(db, "contests", id);
+            const summarySnap = await getDoc(summaryRef);
+
+            if (summarySnap.exists()) {
+                return { id: summarySnap.id, ...summarySnap.data() };
+            }
+
+            return null;
         },
         enabled: !!id,
     });
@@ -147,7 +162,7 @@ export default function ContestDetail() {
                 )}
 
                 <RichContentSection label="소개" value={contest.description} contentWidth={contentWidth} />
-                <RichContentSection label="지원 자격" value={contest.requirements} contentWidth={contentWidth} />
+                <RichContentSection label="지원 자격" value={contest.requirements || contest.eligibility} contentWidth={contentWidth} />
                 <RichContentSection label="혜택" value={contest.benefits} contentWidth={contentWidth} />
 
                 <StyledView className="flex-row space-x-3 mt-4">

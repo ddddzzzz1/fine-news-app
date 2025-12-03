@@ -20,8 +20,8 @@ async function triggerGeminiNews() {
     try {
         console.log('🔐 Signing in as admin...');
 
-        const email = process.env.EXPO_PUBLIC_TEST_EMAIL || "demo@fine.com";
-        const password = process.env.EXPO_PUBLIC_TEST_PASSWORD || "test1234";
+        const email = process.env.EXPO_PUBLIC_TEST_EMAIL || "fine3410@gmail.com";
+        const password = process.env.EXPO_PUBLIC_TEST_PASSWORD || "fine3410";
 
         await signInWithEmailAndPassword(auth, email, password);
         console.log('✅ Signed in successfully\n');
